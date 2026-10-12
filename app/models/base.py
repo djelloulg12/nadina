@@ -11,7 +11,13 @@ import enum
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, func
+from sqlalchemy import (
+    DateTime,
+    Enum as SAEnum,
+    ForeignKey,
+    Index,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, utcnow  # noqa: F401  (يُعاد تصديره للنماذج)
@@ -23,6 +29,38 @@ from app.core.db import Base, utcnow  # noqa: F401  (يُعاد تصديره ل�
 def _enum_values(enum_cls: type) -> list[str]:
     """قائمة القيم النصية للتعداد (بدل أسماء الأعضاء)."""
     return [member.value for member in enum_cls]  # type: ignore[attr-defined]
+
+#: Maximum safe index length on ``utf8mb4`` in MySQL/MariaDB.
+#: 4 bytes per char x 191 chars = 764 bytes, which is below InnoDB's
+#: legacy limit (767) and its modern limit (3072) -- so it works on
+#: every server version without exceptions.
+MYSQL_INDEX_PREFIX = 191
+
+
+def unique_text(name: str, column: str, length: int = MYSQL_INDEX_PREFIX) -> Index:
+    """
+    Unique index that is safe on every database dialect.
+
+    The problem: ``VARCHAR(255)`` under ``utf8mb4`` occupies 1020
+    bytes, which exceeds InnoDB's legacy index prefix limit (767
+    bytes). On an older MySQL/MariaDB the ``CREATE TABLE`` then fails
+    outright and the application cannot start.
+
+    The fix: keep the stored column at its full width (no data
+    truncation) but index only the first 191 characters. Other
+    dialects ignore ``mysql_length``, so their indexes stay complete.
+
+    Usage::
+
+        __table_args__ = (unique_text("uq_users_email", "email"),)
+    """
+    return Index(
+        name,
+        column,
+        unique=True,
+        mysql_length=min(length, MYSQL_INDEX_PREFIX),
+    )
+
 
 
 class StrEnumType(SAEnum):

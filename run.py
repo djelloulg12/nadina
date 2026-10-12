@@ -87,6 +87,7 @@ def main() -> int:
             (("scripts/check_templates.py",), "فحص القوالب"),
             (("scripts/check_css.py",), "فحص تطابق CSS"),
             (("scripts/check_schema_match.py",), "فحص تطابق المخطط مع الترحيل"),
+            (("scripts/check_mysql_compat.py",), "فحص قابلية النقل إلى MariaDB"),
             (("-m", "alembic", "check"), "فحص انحراف المخطط"),
             (("-m", "pytest", "-q"), "تشغيل الاختبارات"),
         ]

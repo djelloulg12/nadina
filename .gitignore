@@ -56,6 +56,8 @@ _*.py
 !_*.pyc
 tmp/
 temp/
+deploy/
+wispbyte_deploy.zip
 
 # --- المحرّرات ---
 .vscode/

@@ -48,6 +48,13 @@ def _with_async_driver(url: str) -> str:
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+    # MariaDB/MySQL: لاسياق الخوادم المشتركة التي تعطي
+    # mysql:// أو mariadb:// بلا سائق. aiomysql هو السائق غير المتزامن.
+    if url.startswith("mysql://"):
+        return url.replace("mysql://", "mysql+aiomysql://", 1)
+    if url.startswith("mariadb://"):
+        return url.replace("mariadb://", "mysql+aiomysql://", 1)
+
     return url
 
 
@@ -146,7 +153,7 @@ class Settings(BaseSettings):
     # 3) قاعدة البيانات
     # ------------------------------------------------------------------
     #: نوع قاعدة البيانات: sqlite | postgresql
-    DB_DRIVER: Literal["sqlite", "postgresql"] = "sqlite"
+    DB_DRIVER: Literal["sqlite", "postgresql", "mysql"] = "sqlite"
 
     #: رابط الاتصال الكامل. إذا ترك فارغاً يُبنى تلقائياً من الحقول التالية.
     DATABASE_URL: str | None = None
@@ -277,6 +284,13 @@ class Settings(BaseSettings):
                 f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
             )
 
+        if self.DB_DRIVER == "mysql":
+            return (
+                f"mysql+aiomysql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+                "?charset=utf8mb4"
+            )
+
         db_path = (BASE_DIR / self.SQLITE_PATH).resolve()
         db_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite+aiosqlite:///{db_path.as_posix()}"
@@ -299,6 +313,7 @@ class Settings(BaseSettings):
 
         return (
             url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+            .replace("mysql+aiomysql://", "mysql+pymysql://", 1)
             .replace("sqlite+aiosqlite://", "sqlite://", 1)
         )
 

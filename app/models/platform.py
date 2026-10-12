@@ -25,7 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import BaseModel
+from app.models.base import BaseModel, unique_text
 from app.models.enums import (
     ClubStatus,
     PlatformPlanPeriod,
@@ -89,9 +89,14 @@ class User(BaseModel):
 
     __tablename__ = "users"
 
+
+    __table_args__ = (
+        # unique index uses a 191-char prefix for MySQL utf8mb4 safety
+        unique_text("uq_users_email", "email"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str | None] = mapped_column(
-        String(255), unique=True, index=True, comment="البريد الإلكتروني (مفتاح دخول اختياري)"
+        String(255), index=True, comment="البريد الإلكتروني (مفتاح دخول اختياري)"
     )
     phone: Mapped[str | None] = mapped_column(
         String(20), unique=True, index=True, comment="رقم الهاتف (مفتاح دخول أساسي)"
@@ -225,10 +230,15 @@ class Club(BaseModel):
 
     __tablename__ = "clubs"
 
+
+    __table_args__ = (
+        # unique index uses a 191-char prefix for MySQL utf8mb4 safety
+        unique_text("uq_clubs_slug", "slug"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     slug: Mapped[str] = mapped_column(
-        String(220), unique=True, nullable=False, index=True, comment="معرّف الرابط"
+        String(220), nullable=False, index=True, comment="معرّف الرابط"
     )
     description: Mapped[str | None] = mapped_column(Text, comment="نبذة عن النادي")
 

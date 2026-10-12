@@ -48,13 +48,15 @@ def _engine_kwargs() -> dict[str, Any]:
         "future": True,
     }
 
-    if settings.DB_DRIVER == "postgresql":
+    url = settings.database_url
+
+    if settings.DB_DRIVER in ("postgresql", "mysql"):
         common.update(
             pool_size=settings.DB_POOL_SIZE,
             max_overflow=settings.DB_MAX_OVERFLOW,
             pool_recycle=settings.DB_POOL_RECYCLE,
         )
-    elif ":memory:" in settings.database_url or settings.is_testing:
+    elif ":memory:" in url or settings.is_testing:
         # SQLite في الذاكرة يتطلب اتصالاً واحداً مشتركاً
         common["poolclass"] = StaticPool
         common.pop("pool_pre_ping", None)

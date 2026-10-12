@@ -13,8 +13,10 @@ jinja2==3.1.6                   # محرّك القوالب (Server-side renderi
 SQLAlchemy==2.0.54             # ORM + Core
 alembic==1.16.5                # ترحيل قاعدة البيانات
 aiosqlite==0.22.1               # سائق SQLite غير متزامن (تطوير)
-asyncpg==0.31.0                # سائق PostgreSQL غير المتزامن (تشغيل التطبيق)
+asyncpg==0.31.0                # سائق PostgreSQL غير متزامن (تشغيل التطبيق)
 psycopg2-binary==2.9.10         # سائق PostgreSQL المتزامن (Alembic فقط)
+aiomysql==0.3.2                 # سائق MariaDB/MySQL غير متزامن
+PyMySQL==1.1.1                  # سائق MariaDB/MySQL متزامن (Alembic)
 greenlet==2.0.3                # مطلوب لـ SQLAlchemy async
 
 # --- Validation & Settings -----------------------------------------
