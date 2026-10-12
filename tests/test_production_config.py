@@ -121,3 +121,28 @@ def test_secret_key_minimum_length():
     """مفتاح أقصر من 32 حرفاً مرفوض."""
     with pytest.raises(ValueError):
         Settings(SECRET_KEY="short")
+
+
+def test_sqlite_parent_dir_is_created(tmp_path):
+    """
+    SQLite لا يُنشئ المجلد الأصل، بل يفشل بـ ``unable to open
+    database file``.
+
+    هذا يقع في الحاوية عند أول نشر: ``data/`` مستثناة من Git، فلو لم
+    تُنشئه الإعدادات لتنشأ قاعدة البيانات لتنهار الخدمة عند الإقلاع.
+    """
+    target = tmp_path / "nested" / "deeper" / "app.db"
+    assert not target.parent.exists()
+
+    settings = Settings(DATABASE_URL=f"sqlite+aiosqlite:///{target.as_posix()}")
+    _ = settings.database_url          # الخاصية هي التي تُنشئ المجلد
+
+    assert target.parent.exists(), "مجلد SQLite لم يُنشأ"
+
+
+def test_postgres_url_creates_no_dirs(tmp_path):
+    """روابط PostgreSQL لا تُنشئ مجلدات — لا شيء لتفعله."""
+    target = tmp_path / "should_not_appear"
+    Settings(DATABASE_URL=f"postgresql://u:p@h/{target.name}").database_url
+
+    assert not target.exists()

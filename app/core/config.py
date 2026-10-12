@@ -51,6 +51,40 @@ def _with_async_driver(url: str) -> str:
     return url
 
 
+def _ensure_sqlite_dir(url: str) -> None:
+    """
+    إنشاء مجلد ملف SQLite إن لم يكن موجوداً.
+
+    SQLite لا يُنشئ المجلد الأصل — بل يفشل بـ ``unable to open
+    database file``. وهذا يقع في صورة الحاوية Fresh checkout، لأن
+    ``data/`` مستثناة من Git، ولأن ``Dockerfile`` ينشئها لحساب
+    ``mashia`` بينما ``DATABASE_URL`` قد يشير إلى مسار نسبي.
+
+    لا نفعل شيئاً لروابط PostgreSQL ولا ل``:memory:``.
+    """
+    if not url.startswith("sqlite"):
+        return
+
+    # فصل مسار الملف عن معاملات الرابط
+    _, _, rest = url.partition(":///")
+    if not rest:
+        return
+
+    path_text = rest.split("?", 1)[0]
+    if not path_text or path_text == ":memory:":
+        return
+
+    path = Path(path_text)
+    if not path.is_absolute():
+        path = BASE_DIR / path
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # نظام ملفات للقراءة فقط: نترك SQLException يبلّغ بوضوح
+        pass
+
+
 class Settings(BaseSettings):
     """كل إعدادات المنصة في مكان واحد."""
 
@@ -233,7 +267,9 @@ class Settings(BaseSettings):
         عند أول استعلام.
         """
         if self.DATABASE_URL:
-            return _with_async_driver(self.DATABASE_URL)
+            url = _with_async_driver(self.DATABASE_URL)
+            _ensure_sqlite_dir(url)
+            return url
 
         if self.DB_DRIVER == "postgresql":
             return (
