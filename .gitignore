@@ -46,7 +46,13 @@ s.log
 s.err
 *.txt.bak
 _tmp*
+# Scratch files (_diag.py, _fix.py, ...)
+#
+# CAUTION: the pattern below also matches package markers such as
+# __init__.py. Ignoring those silently drops them from the repo, and
+# the import then fails in production. The negation line restores them.
 _*.py
+!__init__.py
 !_*.pyc
 tmp/
 temp/

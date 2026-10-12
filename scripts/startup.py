@@ -24,7 +24,21 @@ import logging
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# نضع جذر المشروع في مسار الاستيراد *قبل* أي استيراد آخر، ونزيل
+# مجلد السكربتات نفسه. السبب: عند تشغيل ``python scripts/startup.py``
+# يضيف Python مجلد ``scripts/`` تلقائيًا لمسار البحث.
+# المجلد على ``app.py`` أو تسبّب في تظليل الحزمة، الاستيراد يُحمَّل ``app``
+# كحزمة بلا وحدات (namespace package) فيفشل كل استيراد لاحق بـ
+# ``cannot import name ... (unknown location)``.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_SCRIPTS = os.path.join(_ROOT, "scripts")
+
+sys.path[:] = [
+    p for p in sys.path
+    if os.path.abspath(p or ".") not in (_SCRIPTS,)
+]
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 from app.core.config import settings  # noqa: E402
 
