@@ -95,6 +95,11 @@ def main() -> int:
         for args, label in checks:
             code |= run(*args, label=label)
 
+        # فحص النشر يستحق دقيقة: هو الوحيد الذي يثبت أن المستودع نفسه
+        # قابل للنشر -- فقد أسقط .gitignore ملفات الحزم مرة واحدة بصمت.
+        if code == 0:
+            code |= run("scripts/check_deploy.py", label="فحص جاهزية النشر")
+
         print(f"\n{'✅ كل الفحوص ناجحة' if code == 0 else '❌ توجد إخفاقات'}")
         return code
 
