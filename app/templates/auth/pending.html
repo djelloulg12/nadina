@@ -1,0 +1,21 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="section">
+    <div class="empty-state empty-state-icon-lg">
+      <div class="empty-state-icon" aria-hidden="true">✅</div>
+      <div class="empty-state-title">تم استلام طلبك</div>
+      <div class="empty-state-text">
+        حساب النادي أُنشئ بحالة «قيد المراجعة». سيراجع فريق إدارة المنصة
+        بياناتك ويتواصل معك لتفعيل الحساب. يمكنك تسجيل الدخول الآن لتعبئة
+        بيانات النادي والأفواج أثناء الانتظار.
+      </div>
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="/auth/login">تسجيل الدخول</a>
+        <a class="btn btn-outline" href="/">العودة للرئيسية</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

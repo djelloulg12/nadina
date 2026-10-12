@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set TITLES = [('head_coach','مدرب رئيسي'),('assistant_coach','مدرب مساعد'),
+  ('goalkeeper_coach','مدرب حراس'),('physical_trainer','معد بدني'),('receptionist','موظف استقبال'),
+  ('manager','إداري'),('medical','طبي'),('other','أخرى')] %}
+{% set ROLES = [('coach','مدرب'),('receptionist','إداري / سكرتير'),
+                ('club_admin','مدير النادي')] %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">طاقم النادي</h1>
+    <p class="page-subtitle">{{ members|length }} عضو</p>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+<div class="grid" style="grid-template-columns: 1fr 340px; gap: 1.25rem;">
+
+  {# ================= القائمة ================= #}
+  <div class="card">
+    <div class="card-header"><div class="card-title">الأعضاء</div></div>
+    <div class="card-body card-body-flush">
+      {% if members %}
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>العضو</th><th>الوظيفة</th><th>الهاتف</th>
+                <th>تاريخ التوظيف</th><th class="text-end-cell">الراتب</th>
+                <th class="text-center-cell">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for staff, user in members %}
+              <tr>
+                <td>
+                  <div class="d-flex align-center gap-2">
+                    <span class="avatar avatar-sm" aria-hidden="true">{{ initials(user.full_name) }}</span>
+                    <div>
+                      <div class="fw-bold">{{ user.full_name }}</div>
+                      <div class="text-muted text-sm" dir="ltr">{{ user.email|default(user.phone|default('')) }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div>{{ staff.job_title|status_label }}</div>
+                  <div class="text-muted text-sm">{{ role_label(staff.role) }}</div>
+                </td>
+                <td dir="ltr" class="text-end-cell">{{ user.phone|default('—') }}</td>
+                <td>{{ staff.hire_date|date if staff.hire_date else '—' }}</td>
+                <td class="text-end-cell">{{ staff.salary|money if staff.salary else '—' }}</td>
+                <td class="text-center-cell">{{ ui.badge(staff.status) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('👔', 'لا يوجد طاقم بعد',
+                          'أضف مدربين وإداريين وحدّد صلاحياتهم.', small=true) }}
+      {% endif %}
+    </div>
+  </div>
+
+  {# ================= نموذج الإضافة ================= #}
+  <aside>
+    <div class="card">
+      <div class="card-header"><div class="card-title">إضافة عضو</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/staff" novalidate>
+          {{ ui.field('full_name', 'الاسم الكامل', '', required=True) }}
+
+          <div class="form-group">
+            <label class="form-label" for="role">الرتبة</label>
+            <select class="form-select" id="role" name="role">
+              {% for value, label in ROLES %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job_title">المسمى الوظيفي</label>
+            <select class="form-select" id="job_title" name="job_title">
+              {% for value, label in TITLES %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+
+          {{ ui.field('phone', 'رقم الهاتف', '', type='tel', required=True,
+                      hint='يُستخدم كاسم دخول — يجب أن يكون فريداً') }}
+          {{ ui.field('email', 'البريد الإلكتروني', '', type='email') }}
+
+          <div class="form-group">
+            <label class="form-label" for="password">كلمة المرور</label>
+            <input class="form-control" id="password" name="password" type="password" dir="ltr"
+                   minlength="8" placeholder="اتركها فارغة للتوليد التلقائي">
+            <div class="form-hint">تُولَّد تلقائياً إن تُركت فارغة — غيّرها عند أول دخول.</div>
+          </div>
+
+          {{ ui.field('specialty', 'التخصص', '') }}
+          {{ ui.field('salary', 'الراتب الشهري (دج)', '', type='number', attrs='min="0" step="1000"') }}
+          {{ ui.field('hire_date', 'تاريخ التوظيف', today().isoformat(), type='date') }}
+
+          <button class="btn btn-primary btn-block" type="submit">إضافة العضو</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

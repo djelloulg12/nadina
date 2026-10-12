@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الفاتورة {{ invoice.invoice_number }}</h1>
+    <p class="page-subtitle">
+      {{ invoice.athlete.full_name if invoice.athlete else '—' }} ·
+      {{ invoice.period_label }}
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/club/finance/invoices">← الفواتير</a>
+    <button class="btn btn-outline btn-sm" data-print>🖨️ طباعة</button>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title d-flex justify-between align-center">
+          <span>بيانات الفاتورة</span>
+          {{ ui.badge(invoice.status) }}
+        </div>
+      </div>
+      <div class="card-body">
+        <table class="table">
+          <tbody>
+            <tr>
+              <td class="text-muted">الرياضي</td>
+              <td class="text-end-cell fw-bold">
+                {{ invoice.athlete.full_name if invoice.athlete else '—' }}
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted">الفترة</td>
+              <td class="text-end-cell">{{ invoice.period_label }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">تاريخ الإصدار</td>
+              <td class="text-end-cell">{{ invoice.issue_date|date }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">تاريخ الاستحقاق</td>
+              <td class="text-end-cell {{ 'text-danger fw-bold' if invoice.is_overdue }}">
+                {{ invoice.due_date|date }}
+                {% if invoice.is_overdue %}
+                  <span class="badge badge-danger">{{ invoice.days_overdue }} يوم تأخير</span>
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>المجموع</th>
+              <th class="text-end-cell">{{ invoice.subtotal|money }}</th>
+            </tr>
+            <tr>
+              <th>الخصم</th>
+              <th class="text-end-cell">− {{ invoice.discount|money }}</th>
+            </tr>
+            <tr>
+              <th>الإجمالي</th>
+              <th class="text-end-cell" style="font-size: 1.2rem;">{{ invoice.total|money }}</th>
+            </tr>
+            <tr>
+              <th>المدفوع</th>
+              <th class="text-end-cell text-success">{{ invoice.paid|money }}</th>
+            </tr>
+            <tr>
+              <th>المتبقي</th>
+              <th class="text-end-cell {{ 'text-danger' if invoice.amount_due > 0 }}">
+                {{ invoice.amount_due|money }}
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+
+        {% if invoice.notes %}
+        <div class="mt-3">
+          <div class="text-muted text-sm">ملاحظات:</div>
+          <div>{{ invoice.notes }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ================= الدفعات ================= #}
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">الدفعات المسجّلة</div></div>
+      <div class="card-body card-body-flush">
+        {% if payments %}
+          <div class="table-wrapper">
+            <table class="table table-compact">
+              <thead>
+                <tr>
+                  <th>رقم الوصل</th><th>التاريخ</th><th>الوسيلة</th>
+                  <th>المرجع</th><th class="text-end-cell">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                <tr>
+                  <td dir="ltr" class="text-end-cell text-sm">{{ p.receipt_number }}</td>
+                  <td>{{ p.payment_date|date }}</td>
+                  <td>{{ p.method|status_label }}</td>
+                  <td class="text-muted text-sm">{{ p.reference|default('—') }}</td>
+                  <td class="text-end-cell fw-bold">{{ p.amount|money }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="card-body">
+            <p class="text-muted text-sm mb-0">لم تُسجَّل أي دفعة على هذه الفاتورة.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    {# ================= تسجيل دفعة ================= #}
+    {% if invoice.amount_due > 0 %}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">تسجيل دفعة</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/finance/payments" novalidate>
+          <input type="hidden" name="invoice_id" value="{{ invoice.id }}">
+
+          {{ ui.field('amount', 'المبلغ (دج)', invoice.amount_due|string,
+                      type='number', required=True, attrs='step="100"') }}
+
+          <div class="form-group">
+            <label class="form-label" for="method">وسيلة الدفع</label>
+            <select class="form-select" id="method" name="method">
+              {% for value, label in [('cash','نقداً'),('bank','تحويل بنكي'),
+                ('card','بطاقة'),('check','شيك'),('online','دفع إلكتروني')] %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {{ ui.field('reference', 'المرجع / رقم الشيك', '') }}
+
+          <button class="btn btn-primary btn-block" type="submit">تسجيل الدفعة</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ================= إلغاء ================= #}
+    {% if invoice.status != 'paid' and user_can(current_user, 'invoices.delete') %}
+    <div class="card" style="border-color: var(--danger);">
+      <div class="card-header"><div class="card-title text-danger">إلغاء الفاتورة</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/finance/invoices/{{ invoice.id }}/cancel">
+          <div class="form-group">
+            <label class="form-label" for="reason">السبب</label>
+            <input class="form-control" id="reason" name="reason" required
+                   placeholder="مثال: خطأ في الإدخال">
+          </div>
+          <button class="btn btn-outline btn-danger btn-block" type="submit"
+                  data-confirm data-confirm-title="إلغاء الفاتورة"
+                  data-confirm-text="لا يمكن التراجع عن هذا الإجراء.">
+            إلغاء الفاتورة
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

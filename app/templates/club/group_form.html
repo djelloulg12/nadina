@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set editing = group is not none and group %}
+{% set g = form.get if form else None %}
+{% set LEVELS = [('beginner', 'مبتدئ'), ('amateur', 'هاوٍ'),
+                ('advanced', 'متقدم'), ('elite', 'نخبة')] %}
+{% set GENDER = [('', 'مختلط'), ('male', 'ذكور'), ('female', 'إناث')] %}
+{% set DAYS = [('الأحد','الأحد'),('الإثنين','الإثنين'),('الثلاثاء','الثلاثاء'),
+               ('الأربعاء','الأربعاء'),('الخميس','الخميس'),('الجمعة','الجمعة'),
+               ('السبت','السبت')] %}
+{% set COLORS = [('#0F766E','أخضر'),('#1D4ED8','أزرق'),('#B91C1C','أحمر'),
+                 ('D97706','برتقالي'),('#7C3AED','بنفسجي'),('#DB2777','وردي')] %}
+
+{% macro val(name, fallback='') %}
+  {%- if g -%}{{ g(name, fallback) }}{%- elif editing -%}{{ fallback }}{%- endif -%}
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">{{ 'تعديل فوج' if editing else 'إنشاء فوج' }}</h1>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm"
+       href="{{ '/club/groups/' ~ group.id if editing else '/club/groups' }}">← رجوع</a>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+<form method="post"
+      action="{{ ('/club/groups/' ~ group.id ~ '/edit') if editing else '/club/groups' }}"
+      novalidate>
+<div class="grid grid-2">
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">بيانات الفوج</div></div>
+    <div class="card-body">
+      <div class="form-row d-flex gap-3 flex-wrap">
+        <div class="form-group" style="flex:2 1 200px;">
+          {{ ui.field('name', 'اسم الفوج', val('name', group.name if editing else ''), required=True,
+                      placeholder='مثال: فوج الصغار') }}
+        </div>
+        <div class="form-group" style="flex:1 1 130px;">
+          {{ ui.field('code', 'الكود', val('code', group.code if editing else '')) }}
+        </div>
+      </div>
+
+      <div class="form-row d-flex gap-3 flex-wrap">
+        {% if sports %}
+        <div class="form-group" style="flex:1 1 180px;">
+          {{ ui.select('sport_id', 'الرياضة',
+                       options(sports, 'id', 'name_ar'),
+                       val('sport_id', group.sport_id if editing else ''),
+                       placeholder='اختر الرياضة') }}
+        </div>
+        {% endif %}
+        <div class="form-group" style="flex:1 1 180px;">
+          {{ ui.select('level', 'المستوى', LEVELS,
+                       val('level', group.level if editing else 'beginner')) }}
+        </div>
+        <div class="form-group" style="flex:1 1 180px;">
+          {{ ui.select('gender', 'الفئة', GENDER, val('gender', group.gender if editing else '')) }}
+        </div>
+      </div>
+
+      <div class="form-row d-flex gap-3 flex-wrap">
+        <div class="form-group" style="flex:1 1 150px;">
+          {{ ui.field('min_age', 'أصغر عمر',
+                      val('min_age', group.min_age if editing else ''), type='number',
+                      attrs='min="0" max="99"') }}
+        </div>
+        <div class="form-group" style="flex:1 1 150px;">
+          {{ ui.field('max_age', 'أكبر عمر',
+                      val('max_age', group.max_age if editing else ''), type='number',
+                      attrs='min="0" max="99"') }}
+        </div>
+        <div class="form-group" style="flex:1 1 150px;">
+          {{ ui.field('capacity', 'السعة القصوى',
+                      val('capacity', group.capacity if editing else 20), type='number',
+                      required=True, attrs='min="1" max="200"') }}
+        </div>
+      </div>
+
+      {{ ui.textarea('description', 'وصف الفوج',
+                     val('description', group.description if editing else ''), rows=3) }}
+    </div>
+  </div>
+
+  <div>
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">المدرب والجدولة</div></div>
+      <div class="card-body">
+        {% if coaches %}
+          {{ ui.select('coach_id', 'المدرب المسؤول',
+                       options(coaches, 'id', 'name'),
+                       val('coach_id', group.coach_id if editing else ''),
+                       placeholder='غير محدد') }}
+        {% else %}
+          <p class="text-muted text-sm">لا يوجد مدربون مسجّلون بعد.</p>
+        {% endif %}
+
+        {{ ui.field('location', 'المكان', val('location', group.location if editing else ''),
+                    placeholder='ملعب 1، القاعة المغطاة…') }}
+
+        <div class="form-group">
+          <label class="form-label" for="start_time">التوقيت</label>
+          <div class="d-flex gap-2">
+            <input class="form-control" id="start_time" name="start_time" type="time"
+                   dir="ltr"
+                   value="{{ val('start_time', group.start_time|time if editing and group.start_time else '') }}">
+            <span class="align-center">←</span>
+            <input class="form-control" id="end_time" name="end_time" type="time"
+                   dir="ltr"
+                   value="{{ val('end_time', group.end_time|time if editing and group.end_time else '') }}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <span class="form-label">أيام التدريب</span>
+          <div class="d-flex flex-wrap gap-2">
+            {% for value, label in DAYS %}
+              <label class="form-check">
+                <input type="checkbox" name="schedule_days" value="{{ value }}"
+                       {{ 'checked' if (g and value in (g('schedule_days') or ''))
+                                    or (editing and value in group.schedule_days_list) }}>
+                <span class="text-sm">{{ label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          <div class="form-hint">يمكن اختيار أكثر من يوم</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">المظهر</div></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label" for="monthly_fee">الاشتراك الشهري (دج)</label>
+          <input class="form-control" id="monthly_fee" name="monthly_fee" type="number"
+                 dir="ltr" min="0" step="100"
+                 value="{{ val('monthly_fee', group.monthly_fee if editing else '') }}">
+        </div>
+
+        <div class="form-group">
+          <span class="form-label">لون الفوج</span>
+          <div class="d-flex flex-wrap gap-2">
+            {% for value, label in COLORS %}
+              <label class="form-check">
+                <input type="radio" name="color" value="{{ value }}"
+                       {{ 'checked' if (g and val('color') == value)
+                                    or (editing and group.color == value) }}>
+                <span class="status-dot" style="background: {{ value }};"></span>
+                <span class="text-sm">{{ label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2">
+      <button class="btn btn-primary btn-lg" type="submit">
+        {{ 'حفظ التعديلات' if editing else 'إنشاء الفوج' }}
+      </button>
+      <a class="btn btn-ghost" href="/club/groups">إلغاء</a>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

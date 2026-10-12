@@ -1,0 +1,37 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">موجز الأخبار</h1>
+      <p class="page-subtitle">إعلانات الأندية، نتائج البطولات، ومواعيد التسجيل</p>
+    </div>
+  </div>
+
+  {# ================= تبويبات التصنيف ================= #}
+  <div class="tabs mb-3">
+    {% set kinds = [('', 'الكل'), ('news', 'أخبار'), ('announcement', 'إعلانات'),
+                    ('result', 'نتائج'), ('event', 'فعاليات'), ('tournament', 'بطولات')] %}
+    {% for value, label in kinds %}
+      <a class="tab {{ 'active' if kind|default('') == value }}"
+         href="{{ query_string(request, kind=value or None, page=None) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if news %}
+    <div class="grid grid-3">
+      {% for item in news %}{{ ui.news_card(item) }}{% endfor %}
+    </div>
+
+    <div class="mt-4">
+      {{ ui.pagination(page, total, per_page, '/news') }}
+    </div>
+  {% else %}
+    {{ ui.empty_state('📰', 'لا توجد أخبار',
+                      'لم يُنشر أي خبر في هذا التصنيف بعد.',
+                      '/news', 'عرض كل الأخبار') }}
+  {% endif %}
+</div>
+{% endblock %}

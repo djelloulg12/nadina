@@ -1,0 +1,19 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="section">
+    <div class="empty-state empty-state-icon-lg">
+      <div class="empty-state-icon" aria-hidden="true">🛠️</div>
+      <div class="empty-state-title">خطأ في الخادم</div>
+      <div class="empty-state-text">
+        حدث خطأ غير متوقع من côté الخادم. تم تسجيل التفاصيل، وسيصل فريق
+        الدعم إشعار بها. يرجى المحاولة بعد قليل.
+      </div>
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="/">العودة للرئيسية</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

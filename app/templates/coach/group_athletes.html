@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">رياضي {{ group.name }}</h1>
+    <p class="page-subtitle">
+      {{ athletes|length }} رياضي · {{ group.schedule_days|default('') }}
+      <span dir="ltr">{{ group.time_label|default('') }}</span>
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/coach/groups">← أفوامي</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">قائمة الرياضيين</div>
+    <div class="card-subtitle">مرتّبة بنسبة الحضور</div>
+  </div>
+  <div class="card-body card-body-flush">
+    {% if athletes %}
+      <div class="table-wrapper">
+        <table class="table" id="athletes-table">
+          <thead>
+            <tr>
+              <th>الرياضي</th>
+              <th>العمر</th>
+              <th>الحضور (30 يوم)</th>
+              <th dir="ltr">كود البطاقة</th>
+              <th class="text-end-cell">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in athletes %}
+            {% set a = row.athlete %}
+            <tr>
+              <td>
+                <div class="d-flex align-center gap-2">
+                  {{ ui.avatar(a, 'avatar-sm') }}
+                  <div>
+                    <div class="fw-bold">{{ a.full_name }}</div>
+                    <div class="text-muted text-sm">{{ a.age_group }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>{{ a.age|default('—') }}</td>
+              <td style="min-width: 150px;">
+                {% if row.rate is not none %}
+                  <div class="d-flex align-center gap-2">
+                    {{ ui.progress_bar(row.rate,
+                       'success' if row.rate >= 75 else ('warning' if row.rate >= 50 else 'danger')) }}
+                    <span class="text-sm">{{ row.rate|percent(0) }}</span>
+                  </div>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td dir="ltr" class="text-end-cell">{{ a.card_code }}</td>
+              <td class="text-end-cell">
+                <div class="table-actions d-flex gap-1 justify-end">
+                  <a class="btn btn-icon btn-ghost btn-sm" title="رمز QR"
+                     href="/coach/athletes/{{ a.id }}/qr" target="_blank">📷</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.empty_state('🏃', 'لا يوجد رياضيون في هذا الفوج',
+                        'اطلب من إدارة النادي إضافة رياضيين إلى الفوج.') }}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

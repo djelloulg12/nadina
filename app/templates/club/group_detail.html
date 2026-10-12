@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <div class="d-flex align-center gap-2">
+      {% if group.color %}<span class="status-dot status-dot-lg" style="background: {{ group.color }};"></span>{% endif %}
+      <div>
+        <h1 class="page-title">{{ group.name }}</h1>
+        <p class="page-subtitle">
+          {{ group.level|status_label }}
+          {% if group.coach %} · {{ group.coach.name }}{% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/club/groups">← الأفواج</a>
+    {% if user_can(current_user, 'groups.update') %}
+      <a class="btn btn-outline btn-sm" href="/club/groups/{{ group.id }}/edit">✎ تعديل</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-4 mb-3">
+  {{ ui.stat_card('الرياضيون', athletes|length|number, '🏃', 'primary',
+                  'من أصل ' ~ group.capacity) }}
+  {{ ui.stat_card('المقاعد الشاغرة', group.available_slots, '🪑',
+                  'warning' if group.available_slots == 0 else 'success') }}
+  {{ ui.stat_card('الاشتراك الشهري', group.monthly_fee|money_short if group.monthly_fee else '—', '💳', 'info') }}
+  {{ ui.stat_card('الحصص المسجّلة', sessions|length, '📅', 'success') }}
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+  <div>
+    {# ================= أعضاء الفوج ================= #}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">أعضاء الفوج</div>
+        <div class="card-header-actions">
+          <a class="btn btn-primary btn-sm" href="/club/athletes/new">+ إضافة رياضي</a>
+        </div>
+      </div>
+      <div class="card-body card-body-flush">
+        {% if athletes %}
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>الرياضي</th>
+                  <th>كود البطاقة</th>
+                  <th>الفئة العمرية</th>
+                  <th>هاتف الولي</th>
+                  <th class="text-end-cell">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in athletes %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-center gap-2">
+                      {{ ui.avatar(a, 'avatar-sm') }}
+                      <a href="/club/athletes/{{ a.id }}" class="fw-bold text-decoration-none">
+                        {{ a.full_name }}
+                      </a>
+                    </div>
+                  </td>
+                  <td dir="ltr" class="text-end-cell">{{ a.card_code }}</td>
+                  <td>{{ a.age_group }}</td>
+                  <td dir="ltr" class="text-end-cell">{{ a.guardian_phone|default('—') }}</td>
+                  <td class="text-end-cell">
+                    <div class="table-actions d-flex gap-1 justify-end">
+                      <form method="post"
+                            action="/club/athletes/{{ a.id }}/groups/{{ group.id }}/remove"
+                            data-confirm data-confirm-title="إخراج من الفوج"
+                            data-confirm-text="سيُخرج {{ a.full_name }} من {{ group.name }}">
+                        <button class="btn btn-icon btn-ghost btn-sm btn-danger"
+                                type="submit" title="إخراج">✕</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ ui.empty_state('👥', 'الفوج فارغ',
+                            'أضف رياضيين من صفحة الرياضيين أو أنشئ فوجاً آخر.',
+                            '/club/athletes', 'تصفّح الرياضيين') }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    {# ================= تفاصيل الفوج ================= #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">التفاصيل</div></div>
+      <div class="card-body">
+        <table class="table table-compact table-borderless mb-0">
+          <tbody>
+            <tr><td class="text-muted">الرياضة</td>
+                <td class="text-end-cell">{{ group.sport.name_ar if group.sport else '—' }}</td></tr>
+            <tr><td class="text-muted">الأعمار</td>
+                <td class="text-end-cell">
+                  {{ group.min_age|default('?') }} — {{ group.max_age|default('?') }}
+                </td></tr>
+            <tr><td class="text-muted">الفئة</td>
+                <td class="text-end-cell">{{ group.gender|status_label }}</td></tr>
+            <tr><td class="text-muted">أيام التدريب</td>
+                <td class="text-end-cell">{{ group.schedule_days|default('—') }}</td></tr>
+            <tr><td class="text-muted">التوقيت</td>
+                <td class="text-end-cell" dir="ltr">{{ group.time_label|default('—') }}</td></tr>
+            <tr><td class="text-muted">المكان</td>
+                <td class="text-end-cell">{{ group.location|default('—') }}</td></tr>
+            <tr><td class="text-muted">المدرب</td>
+                <td class="text-end-cell">{{ group.coach.name if group.coach else '—' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# ================= حصص أخيرة ================= #}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">حصص أخيرة</div>
+      </div>
+      <div class="card-body card-body-flush">
+        {% if sessions %}
+          <table class="table table-compact mb-0">
+            <tbody>
+              {% for s in sessions %}
+              <tr>
+                <td>
+                  <a href="/club/sessions/{{ s.id }}">{{ s.session_date|date }}</a>
+                  <div class="text-muted text-sm" dir="ltr">{{ s.time_label }}</div>
+                </td>
+                <td class="text-end-cell">
+                  <span class="badge badge-{{ 'success' if s.present_count else 'secondary' }}">
+                    {{ s.present_count }}/{{ s.expected_count }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="card-body">
+            <p class="text-muted text-sm mb-0">لا توجد حصص مسجّلة.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+</div>
+
+{% if user_can(current_user, 'groups.delete') %}
+<div class="card mt-3" style="border-color: var(--danger);">
+  <div class="card-header"><div class="card-title text-danger">حذف الفوج</div></div>
+  <div class="card-body">
+    <p class="text-muted text-sm">
+      لا يمكن حذف فوج يضم رياضيين. انقل أعضاؤه أولاً إلى أفواج أخرى.
+    </p>
+    <form method="post" action="/club/groups/{{ group.id }}/delete"
+          data-confirm data-confirm-title="حذف الفوج"
+          data-confirm-text="سيتم تعطيل {{ group.name }}.">
+      <button class="btn btn-outline btn-danger" type="submit">حذف الفوج</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

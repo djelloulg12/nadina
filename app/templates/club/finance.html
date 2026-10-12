@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set f = summary %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">التسيير المالي</h1>
+    <p class="page-subtitle">
+      من {{ f.period.start|date }} إلى {{ f.period.end|date }}
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" href="/club/finance/invoices">🧾 الفواتير</a>
+    <a class="btn btn-primary btn-sm" href="/club/finance/invoices">+ فاتورة</a>
+  </div>
+</div>
+
+{# ================= المؤشرات ================= #}
+<div class="grid grid-4 mb-3">
+  {{ ui.stat_card('الإيرادات', f.income|money_short, '💰', 'success',
+                  f.payment_count|string ~ ' دفعة') }}
+  {{ ui.stat_card('المصاريف', f.expenses|money_short, '💸', 'danger',
+                  f.expense_count|string ~ ' مصروف') }}
+  {{ ui.stat_card('الصافي', f.net|money_short, '📈',
+                  'success' if f.net >= 0 else 'danger',
+                  f.period.start|date ~ ' → ' ~ f.period.end|date,
+                  f.net >= 0) }}
+  {{ ui.stat_card('نسبة التحصيل', f.collection_rate|percent, '🎯',
+                  'info', 'المحصّل / المفوتر') }}
+</div>
+
+{% if f.outstanding %}
+<div class="card mb-3" style="border-color: var(--warning);">
+  <div class="card-body d-flex flex-wrap justify-between align-center gap-3">
+    <div>
+      <div class="fw-bold">⚠️ ديون مستحقة: {{ f.outstanding|money }}</div>
+      <div class="text-muted text-sm">
+        على {{ f.debt_invoices }} فاتورة
+        {% if f.overdue_count %} — منها {{ f.overdue_count }} فاتورة متأخرة
+        {% endif %}
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-warning btn-sm" href="/club/finance/invoices?overdue=1">
+        عرض المتأخرات
+      </a>
+      <a class="btn btn-outline btn-sm" href="/club/finance/invoices">
+        كل الفواتير
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+  <div>
+
+    {# ================= الرسم البياني ================= #}
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="card-title">الإيرادات والمصاريف (12 شهراً)</div>
+      </div>
+      <div class="card-body">
+        {% if chart and chart|length %}
+          <canvas data-chart="bar" height="120"
+                  data-labels="{{ chart|map(attribute='label')|join(',') }}"
+                  data-values="{{ chart|map(attribute='income')|map('float')|join(',') }}"
+                  aria-label="مخطط الإيرادات"></canvas>
+        {% else %}
+          {{ ui.empty_state('📈', 'لا توجد بيانات مالية بعد', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {# ================= أكبر المدينين ================= #}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">أكثر الرياضيين مديونية</div>
+        <div class="card-subtitle">مرتّبون حسب المبلغ المستحق</div>
+      </div>
+      <div class="card-body card-body-flush">
+        {% if debtors %}
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>الرياضي</th>
+                  <th>ولي الأمر</th>
+                  <th class="text-center-cell">الفواتير</th>
+                  <th class="text-center-cell">أقدم استحقاق</th>
+                  <th class="text-end-cell">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in debtors %}
+                <tr>
+                  <td>
+                    <a href="/club/athletes/{{ d.athlete_id }}"
+                       class="fw-bold text-decoration-none">{{ d.full_name }}</a>
+                  </td>
+                  <td class="text-muted text-sm">{{ d.guardian_name|default('—') }}</td>
+                  <td class="text-center-cell">{{ d.invoice_count }}</td>
+                  <td class="text-center-cell">
+                    {% if d.days_overdue > 0 %}
+                      <span class="badge badge-danger">{{ d.days_overdue }} يوم</span>
+                    {% else %}
+                      <span class="text-muted">{{ d.oldest_due|date }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end-cell fw-bold">{{ d.debt|money }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ ui.empty_state('🎉', 'لا توجد ديون', 'كل الفواتير مسددة.', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    {# ================= توزيع المصاريف ================= #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">المصاريف حسب التصنيف</div></div>
+      <div class="card-body">
+        {% if categories %}
+          {% set max_total = categories|map(attribute='total')|map('float')|max %}
+          {% for c in categories %}
+          <div class="mb-3">
+            <div class="d-flex justify-between text-sm mb-1">
+              <span>{{ c.label }}</span>
+              <span class="fw-bold">{{ c.total|money_short }}</span>
+            </div>
+            {{ ui.progress_bar((c.total|float / max_total|float * 100) if max_total else 0, 'warning') }}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted text-sm mb-0">لم تُسجَّل مصاريف بعد.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ================= نموذج مصروف ================= #}
+    {% if user_can(current_user, 'expenses.create') %}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">تسجيل مصروف</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/finance/expenses" novalidate>
+          {{ ui.field('title', 'الوصف', '', required=True) }}
+
+          <div class="form-group">
+            <label class="form-label" for="category">التصنيف</label>
+            <select class="form-select" id="category" name="category">
+              {% for value, label in [('rent','إيجار'),('salary','رواتب'),
+                ('equipment','تجهيزات'),('maintenance','صيانة'),('utilities','مرافق'),
+                ('marketing','تسويق'),('transport','نقل'),('medical','طبي'),('other','أخرى')] %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {{ ui.field('amount', 'المبلغ (دج)', '', type='number', required=True,
+                      attrs='min="0" step="100"') }}
+          {{ ui.field('vendor', 'المورّد', '') }}
+          {{ ui.field('expense_date', 'التاريخ', today().isoformat(), type='date') }}
+
+          <button class="btn btn-primary btn-block" type="submit">تسجيل المصروف</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

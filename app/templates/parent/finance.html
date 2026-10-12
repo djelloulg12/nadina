@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الوضع المالي</h1>
+    <p class="page-subtitle">فواتير ودفعات أبنائك في كل الأندية</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/parent">← أبنائي</a>
+  </div>
+</div>
+
+<div class="grid grid-3 mb-3">
+  {{ ui.stat_card('عدد الأبناء', children|length, '👨‍👩‍👧', 'primary') }}
+  {{ ui.stat_card('إجمالي المستحق',
+                  (invoices|selectattr('status', 'in', ['unpaid','partial','overdue'])
+                   |map(attribute='amount_due')|map('float')|sum)|money_short,
+                  '⚠️', 'warning') }}
+  {{ ui.stat_card('آخر 30 يوم', (payments|length), '💳', 'success', 'دفعة مسجّلة') }}
+</div>
+
+<div class="grid grid-2" style="align-items: start;">
+
+  {# ================= الفواتير ================= #}
+  <div class="card">
+    <div class="card-header"><div class="card-title">الفواتير</div></div>
+    <div class="card-body card-body-flush">
+      {% if invoices %}
+        <div class="table-wrapper">
+          <table class="table table-compact">
+            <thead>
+              <tr>
+                <th>الرقم</th><th>الابن</th><th>الفترة</th>
+                <th>المتبقي</th><th class="text-center-cell">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for inv in invoices %}
+              <tr>
+                <td dir="ltr" class="text-end-cell text-sm">{{ inv.invoice_number }}</td>
+                <td>{{ child_names.get(inv.athlete_id, '—') }}</td>
+                <td class="text-sm">
+                  {{ inv.period_start|date }} — {{ inv.period_end|date }}
+                </td>
+                <td class="text-end-cell fw-bold">{{ inv.amount_due|money }}</td>
+                <td class="text-center-cell">{{ ui.badge(inv.status) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('🧾', 'لا توجد فواتير', small=true) }}
+      {% endif %}
+    </div>
+  </div>
+
+  {# ================= الدفعات ================= #}
+  <div class="card">
+    <div class="card-header"><div class="card-title">سجل الدفعات</div></div>
+    <div class="card-body card-body-flush">
+      {% if payments %}
+        <div class="table-wrapper">
+          <table class="table table-compact">
+            <thead>
+              <tr>
+                <th>رقم الوصل</th><th>الابن</th><th>التاريخ</th>
+                <th>الوسيلة</th><th class="text-end-cell">المبلغ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td dir="ltr" class="text-end-cell text-sm">{{ p.receipt_number }}</td>
+                <td>{{ child_names.get(p.athlete_id, '—') }}</td>
+                <td>{{ p.payment_date|date }}</td>
+                <td class="text-sm">{{ p.method|status_label }}</td>
+                <td class="text-end-cell fw-bold text-success">{{ p.amount|money }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('💳', 'لا توجد دفعات مسجّلة', small=true) }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{{ ui.alert('للتسجيل أو الاستفسار عن الاشتراكات، تواصل مباشرة مع إدارة النادي.', 'info') }}
+{% endblock %}

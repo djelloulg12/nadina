@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set a = athlete %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <div class="d-flex align-center gap-3">
+      {{ ui.avatar(a, 'avatar-lg') }}
+      <div>
+        <h1 class="page-title">{{ a.full_name }}</h1>
+        <p class="page-subtitle">
+          <span dir="ltr">{{ a.card_code }}</span>
+          {% if a.age %} · {{ a.age }} سنة ({{ a.age_group }}){% endif %}
+          {% if a.sport %} · {{ a.sport.name_ar }}{% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" target="_blank"
+       href="/club/athletes/{{ a.id }}/card">🖨️ البطاقة</a>
+    <a class="btn btn-outline btn-sm" href="/club/athletes/{{ a.id }}/edit">✎ تعديل</a>
+    <a class="btn btn-primary btn-sm" href="/club/groups">+ فوج</a>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+{# ================= مؤشرات سريعة ================= #}
+<div class="grid grid-4 mb-3">
+  {{ ui.stat_card('نسبة الحضور', profile.attendance_rate|percent
+                  if profile.attendance_rate is not none else '—', '✅', 'success',
+                  'آخر ' ~ profile.attendance_period_days ~ ' يوماً', true) }}
+  {{ ui.stat_card('المستحق', profile.debt|money_short, '💳',
+                  'danger' if profile.debt > 0 else 'success',
+                  (profile.unpaid_invoices|length|string ~ ' فاتورة') if profile.debt > 0 else 'لا مديونية',
+                  profile.debt <= 0) }}
+  {{ ui.stat_card('الأفواج', profile.groups|length, '👥', 'primary') }}
+  {{ ui.stat_card('التقييمات', profile.evaluations|length, '⭐', 'info',
+                  (profile.evaluations[0].grade ~ ' — آخر تقييم')
+                  if profile.evaluations else 'لا توجد تقييمات') }}
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+
+  <div>
+    {# ================= الحضور ================= #}
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="card-title">سجل الحضور</div>
+        <div class="card-subtitle">آخر {{ profile.attendance_period_days }} يوماً</div>
+      </div>
+      <div class="card-body">
+        {% if recent_attendance %}
+          <div class="d-flex gap-3 flex-wrap mb-3">
+            {% for status in ['present', 'late', 'absent', 'excused'] %}
+              {% set count = profile.attendance_summary.get(status, 0) %}
+              <div class="text-center">
+                <div class="stat-value stat-value-sm">
+                  {{ profile.attendance_summary.get(status, 0) }}
+                </div>
+                <div class="text-muted text-sm">{{ status|status_label }}</div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="table-wrapper">
+            <table class="table table-compact">
+              <thead>
+                <tr><th>التاريخ</th><th>الحالة</th><th>الطريقة</th><th>ملاحظات</th></tr>
+              </thead>
+              <tbody>
+                {% for r in recent_attendance %}
+                <tr>
+                  <td>{{ r.session_date|date }}</td>
+                  <td>{{ ui.badge(r.status) }}</td>
+                  <td class="text-muted text-sm">{{ r.method }}</td>
+                  <td class="text-muted text-sm">{{ r.notes|default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ ui.empty_state('📋', 'لا يوجد سجل حضور بعد', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {# ================= التقييمات ================= #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">التقييمات الفنية</div></div>
+      <div class="card-body">
+        {% if profile.evaluations %}
+          {% for e in profile.evaluations %}
+          <div class="card mb-2" style="border-inline-start: 3px solid var(--primary);">
+            <div class="card-body">
+              <div class="d-flex justify-between align-center flex-wrap gap-2 mb-2">
+                <span class="fw-bold">{{ e.eval_date|date }}</span>
+                <span class="badge badge-primary">{{ e.grade }} ({{ e.average_score }}/10)</span>
+              </div>
+              <div class="grid grid-4 mb-2">
+                {% for label, score in e.score_components %}
+                  <div>
+                    <div class="text-muted text-sm">{{ label }}</div>
+                    <div class="fw-bold">{{ score if score is not none else '—' }}</div>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if e.strengths %}<div class="text-sm"><strong>نقاط القوة:</strong> {{ e.strengths }}</div>{% endif %}
+              {% if e.weaknesses %}<div class="text-sm"><strong>يحتاج تحسين:</strong> {{ e.weaknesses }}</div>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          {{ ui.empty_state('⭐', 'لا توجد تقييمات', 'سيضيف المدرب التقييمات دورياً.', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    {# ================= الأفواج ================= #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">الأفواج</div></div>
+      <div class="card-body card-body-flush">
+        {% if profile.groups %}
+          <table class="table table-compact mb-0">
+            <tbody>
+              {% for g in profile.groups %}
+              <tr>
+                <td>
+                  <a href="/club/groups/{{ g.id }}">{{ g.name }}</a>
+                  <div class="text-muted text-sm">{{ g.schedule_days|default('') }}</div>
+                </td>
+                <td class="text-end-cell text-sm">{{ g.time_label|default('') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="card-body">
+            <p class="text-muted text-sm mb-0">غير مسجّل في أي فوج.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ================= أولياء الأمر ================= #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">أولياء الأمر</div></div>
+      <div class="card-body card-body-flush">
+        {% if profile.parents %}
+          <table class="table table-compact mb-0">
+            <tbody>
+              {% for link, parent in profile.parents %}
+              <tr>
+                <td>
+                  {{ parent.full_name }}
+                  {% if link.is_primary %}
+                    <span class="badge badge-primary">أساسي</span>
+                  {% endif %}
+                  <div class="text-muted text-sm" dir="ltr">{{ parent.phone|default('') }}</div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="card-body">
+            <p class="text-muted text-sm mb-0">لم يُربط بولي أمر.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ================= الوضع المالي ================= #}
+    {% if profile.unpaid_invoices %}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">الفواتير المستحقة</div></div>
+      <div class="card-body card-body-flush">
+        <table class="table table-compact mb-0">
+          <tbody>
+            {% for inv in profile.unpaid_invoices %}
+            <tr>
+              <td>
+                <div class="text-sm">{{ inv.invoice_number }}</div>
+                <div class="text-muted text-sm">استحقاق {{ inv.due_date|date }}</div>
+              </td>
+              <td class="text-end-cell">
+                <div class="fw-bold">{{ inv.amount_due|money }}</div>
+                {{ ui.badge(inv.status) }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ================= بطاقة ================= #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">بطاقة الحضور</div></div>
+      <div class="card-body text-center">
+        <img src="/club/athletes/{{ a.id }}/qr" alt="رمز QR"
+             width="140" height="140" style="border-radius: 10px;">
+        <div class="fw-bold mt-2" dir="ltr">{{ a.card_code }}</div>
+        <div class="text-muted text-sm">يستخدمه المدرب لتسجيل الحضور</div>
+      </div>
+    </div>
+
+    {# ================= بيانات إدارية ================= #}
+    <div class="card">
+      <div class="card-header"><div class="card-title">بيانات</div></div>
+      <div class="card-body">
+        <table class="table table-compact table-borderless mb-0">
+          <tbody>
+            <tr><td class="text-muted">تاريخ التسجيل</td>
+                <td class="text-end-cell">{{ a.joined_at|date }}</td></tr>
+            <tr><td class="text-muted">الهاتف</td>
+                <td class="text-end-cell" dir="ltr">{{ a.phone|default('—') }}</td></tr>
+            <tr><td class="text-muted">فصيلة الدم</td>
+                <td class="text-end-cell">{{ a.blood_type|default('—') }}</td></tr>
+            {% if a.allergies %}
+            <tr><td class="text-muted text-danger">حساسية</td>
+                <td class="text-end-cell">{{ a.allergies }}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

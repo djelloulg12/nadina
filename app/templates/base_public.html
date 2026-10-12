@@ -1,0 +1,85 @@
+{# =========================================================================
+   القالب الأساسي للبوابة العامة
+   ---------------------------------------------------------------------
+   تخطيط بسيط بدون شريط جانبي: شعار + تنقل علوي + محتوى + تذييل.
+   ========================================================================= #}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="منصة شاملة لتسيير الأندية الرياضية: رياضيون، أفواج، حصص، حضور ومالية.">
+  <title>{{ page_title|default('الرئيسية') }} — {{ APP_NAME }}</title>
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    try {
+      document.documentElement.dataset.theme =
+        localStorage.getItem('mashia-theme') || 'light';
+    } catch (e) {}
+  </script>
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="d-flex align-center gap-3">
+    <a href="/" class="d-flex align-center gap-2 text-decoration-none">
+      <img src="/static/icons/icon.svg" alt="{{ APP_NAME }}" width="34" height="34">
+      <span class="fw-bold">{{ APP_NAME }}</span>
+    </a>
+  </div>
+
+  <nav class="topbar-actions" aria-label="التنقل العام">
+    <a class="btn btn-ghost {{ 'active' if active_nav == 'home' }}" href="/">الرئيسية</a>
+    <a class="btn btn-ghost {{ 'active' if active_nav == 'clubs' }}" href="/clubs">دليل الأندية</a>
+    <a class="btn btn-ghost {{ 'active' if active_nav == 'news' }}" href="/news">الأخبار</a>
+
+    {% if current_user %}
+      <a class="btn btn-primary btn-sm" href="/profile">
+        {{ current_user.full_name|initials }}
+      </a>
+    {% else %}
+      <a class="btn btn-primary btn-sm" href="/auth/login">تسجيل الدخول</a>
+      <a class="btn btn-outline btn-sm d-none d-md-inline-flex" href="/auth/register">افتح حساب نادي</a>
+    {% endif %}
+  </nav>
+</header>
+
+<main id="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="section mt-5" style="border-top: 1px solid var(--border-color);">
+  <div class="container">
+    <div class="d-flex flex-wrap justify-between gap-3 align-center">
+      <div class="d-flex align-center gap-2">
+        <img src="/static/icons/icon.svg" alt="" width="28" height="28">
+        <div>
+          <div class="fw-bold">{{ APP_NAME }}</div>
+          <div class="text-muted text-sm">منصة متكاملة لتسيير الأندية الرياضية</div>
+        </div>
+      </div>
+      <nav class="d-flex flex-wrap gap-3 text-sm">
+        <a href="/clubs" class="text-muted">دليل الأندية</a>
+        <a href="/news" class="text-muted">الأخبار</a>
+        <a href="/auth/login" class="text-muted">دخول الموظف</a>
+      </nav>
+    </div>
+    <div class="text-muted text-sm mt-3">
+      الإصدار {{ APP_VERSION }} — جميع الحقوق محفوظة
+    </div>
+  </div>
+</footer>
+
+<div class="toast-container" aria-live="polite"></div>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set s = summary %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">لوحة التحكم</h1>
+    <p class="page-subtitle">
+      {{ club.name }} — {{ s.period.today|date('%A') }} {{ s.period.today|date }}
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" href="/club/sessions">📅 الحصص</a>
+    <a class="btn btn-primary btn-sm" href="/club/athletes/new">+ رياضي جديد</a>
+  </div>
+</div>
+
+{# ================= المؤشرات ================= #}
+<div class="grid grid-4 mb-4">
+  {{ ui.stat_card('الرياضيون', s.counts.athletes|number, '🏃', 'primary',
+                  (s.counts.new_athletes_month|string ~ ' جديد هذا الشهر'), true) }}
+  {{ ui.stat_card('حضور اليوم', s.attendance.today_rate|percent, '✅', 'success',
+                  (s.attendance.today_present|string ~ ' / ' ~ s.attendance.today_total|string ~ ' مسجّل'), true) }}
+  {{ ui.stat_card('الديون المستحقة', s.finance.total_debt|money_short, '⚠️', 'danger',
+                  (s.finance.overdue_count|string ~ ' فاتورة متأخرة'), false) }}
+  {{ ui.stat_card('إيراد الشهر', s.finance.month_income|money_short, '💰', 'info',
+                  ('صافي ' ~ s.finance.month_net|money_short), s.finance.month_net >= 0) }}
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+
+  {# ================= العمود الرئيسي ================= #}
+  <div>
+
+    {# ---------- جدول اليوم ---------- #}
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="card-title">جدول اليوم</div>
+        <div class="card-subtitle">{{ s.sessions.today_total }} حصة</div>
+      </div>
+      <div class="card-body card-body-flush">
+        {% if schedule %}
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>التوقيت</th>
+                  <th>الفوج</th>
+                  <th>الحالة</th>
+                  <th class="text-center-cell">الحضور</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in schedule %}
+                <tr>
+                  <td dir="ltr" class="text-end-cell fw-bold">
+                    {{ item.time }}
+                    <span class="text-muted text-sm">{{ item.end_time }}</span>
+                  </td>
+                  <td>
+                    {% if item.group_color %}
+                      <span class="status-dot" style="background: {{ item.group_color }};"></span>
+                    {% endif %}
+                    {{ item.group_name }}
+                  </td>
+                  <td>{{ ui.badge(item.status) }}</td>
+                  <td class="text-center-cell">
+                    <span class="badge badge-{{ 'success' if item.present else 'secondary' }}">
+                      {{ item.present }}/{{ item.expected }}
+                    </span>
+                  </td>
+                  <td class="text-end-cell">
+                    <a class="btn btn-outline btn-sm"
+                       href="/club/sessions/{{ item.session.id }}">ورقة الحضور</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ ui.empty_state('📅', 'لا توجد حصص اليوم', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---------- رسم الحضور ---------- #}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">نسبة الحضور (آخر 14 يوماً)</div>
+      </div>
+      <div class="card-body">
+        {% if chart and chart|length %}
+          <canvas data-chart="line" height="110"
+                  data-labels="{{ chart|map(attribute='label')|join(',') }}"
+                  data-values="{{ chart|map(attribute='rate')|join(',') }}"
+                  aria-label="مخطط نسبة الحضور"></canvas>
+        {% else %}
+          {{ ui.empty_state('📈', 'لا توجد بيانات حضور بعد', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ================= العمود الجانبي ================= #}
+  <aside>
+
+    {# ---------- إجراءات سريعة ---------- #}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">إجراءات سريعة</div></div>
+      <div class="card-body d-grid gap-2">
+        <a class="btn btn-outline btn-block" href="/club/athletes/new">+ إضافة رياضي</a>
+        <a class="btn btn-outline btn-block" href="/club/groups/new">+ إنشاء فوج</a>
+        <a class="btn btn-outline btn-block" href="/club/finance/invoices">+ إصدار فاتورة</a>
+        <a class="btn btn-outline btn-block" href="/club/import">📥 استيراد من Excel</a>
+      </div>
+    </div>
+
+    {# ---------- غائبات يحتاجون متابعة ---------- #}
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="card-title">أكثر الغياب (7 أيام)</div>
+      </div>
+      <div class="card-body card-body-flush">
+        {% if absences %}
+          <table class="table table-compact mb-0">
+            <tbody>
+              {% for a in absences %}
+              <tr>
+                <td>{{ a.full_name }}</td>
+                <td class="text-end-cell">
+                  <span class="badge badge-{{ 'danger' if a.absences > 2 else 'warning' }}">
+                    {{ a.absences }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          {{ ui.empty_state('👍', 'لا توجد غيابات', 'حضور ممتاز هذا الأسبوع', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---------- طلبات معلّقة ---------- #}
+    {% if s.registrations.pending %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="card-title">طلبات تسجيل</div>
+      </div>
+      <div class="card-body text-center">
+        <div class="stat-value">{{ s.registrations.pending }}</div>
+        <div class="text-muted text-sm">طلب بانتظار المراجعة</div>
+        <a class="btn btn-primary btn-sm btn-block mt-2" href="/club/registrations">مراجعة الطلبات</a>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ---------- ملخص النادي ---------- #}
+    <div class="card">
+      <div class="card-header"><div class="card-title">ملخص النادي</div></div>
+      <div class="card-body">
+        <table class="table table-compact table-borderless mb-0">
+          <tbody>
+            <tr><td class="text-muted">الأفواج</td>
+                <td class="text-end-cell">{{ s.counts.groups }}</td></tr>
+            <tr><td class="text-muted">الطاقم</td>
+                <td class="text-end-cell">{{ s.counts.staff }}</td></tr>
+            <tr><td class="text-muted">نسبة إشغال الأفواج</td>
+                <td class="text-end-cell">{{ s.occupancy.avg_fill_rate|percent }}</td></tr>
+            <tr><td class="text-muted">مغادرون (30 يوم)</td>
+                <td class="text-end-cell">{{ s.counts.left_month }}</td></tr>
+            {% if club and club.subscription_end %}
+            <tr>
+              <td class="text-muted">نهاية الاشتراك</td>
+              <td class="text-end-cell {{ 'text-danger' if club.is_subscription_expiring }}">
+                {{ club.subscription_end|date }}
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

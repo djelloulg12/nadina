@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set AXES = [('physical_score','اللياقة البدنية'),
+               ('technique_score','المهارات الفنية'),
+               ('discipline_score','الانضباط'),
+               ('teamwork_score','الروح الجماعية')] %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">التقييمات</h1>
+    <p class="page-subtitle">{{ evaluations|length }} تقييم</p>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 360px 1fr; gap: 1.25rem;">
+
+  {# ================= نموذج التقييم ================= #}
+  <aside>
+    <div class="card">
+      <div class="card-header"><div class="card-title">تقييم جديد</div></div>
+      <div class="card-body">
+        {% if athletes %}
+        <form method="post" action="/coach/evaluations" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="athlete_id">
+              الرياضي <span class="required">*</span>
+            </label>
+            <select class="form-select" id="athlete_id" name="athlete_id" required>
+              <option value="">— اختر —</option>
+              {% for a in athletes %}
+                <option value="{{ a.id }}">{{ a.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="divider-text my-3">المحاور (1 إلى 10)</div>
+
+          {% for name, label in AXES %}
+          <div class="form-group">
+            <label class="form-label" for="{{ name }}">{{ label }}</label>
+            <input class="form-control" id="{{ name }}" name="{{ name }}"
+                   type="number" min="1" max="10" placeholder="—">
+          </div>
+          {% endfor %}
+
+          <div class="divider-text my-3">ملاحظات</div>
+
+          {{ ui.textarea('strengths', 'نقاط القوة', '', rows=2) }}
+          {{ ui.textarea('weaknesses', 'نقاط تحتاج تحسين', '', rows=2) }}
+          {{ ui.textarea('notes', 'ملاحظات عامة', '', rows=2) }}
+          {{ ui.textarea('recommendations', 'توصيات لولي الأمر', '', rows=2) }}
+
+          <button class="btn btn-primary btn-block" type="submit">حفظ التقييم</button>
+        </form>
+        {% else %}
+        <p class="text-muted text-sm mb-0">
+          لا يوجد رياضيون في أفواجك. أضف رياضيين أولاً.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+
+  {# ================= السجل ================= #}
+  <div class="card">
+    <div class="card-header"><div class="card-title">التقييمات المكتوبة</div></div>
+    <div class="card-body card-body-flush">
+      {% if evaluations %}
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>التاريخ</th><th>الرياضي</th>
+                <th class="text-center-cell">بدنية</th>
+                <th class="text-center-cell">فنية</th>
+                <th class="text-center-cell">انضباط</th>
+                <th class="text-center-cell">جماعية</th>
+                <th class="text-center-cell">المعدل</th>
+                <th class="text-center-cell">التقدير</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in evaluations %}
+              <tr>
+                <td>{{ e.eval_date|date }}</td>
+                <td class="fw-bold">
+                  {{ e.athlete.full_name if e.athlete else '—' }}
+                </td>
+                {% for name, label in AXES %}
+                  <td class="text-center-cell">{{ e|attr(name) or '—' }}</td>
+                {% endfor %}
+                <td class="text-center-cell fw-bold">{{ e.average_score or '—' }}</td>
+                <td class="text-center-cell">{{ ui.badge(e.grade, 'primary') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('⭐', 'لم تكتب أي تقييم بعد',
+                          'قيّم رياضييك بانتظام لمتابعة تطورهم.',
+                          '/coach/groups', 'اختر فوجاً') }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

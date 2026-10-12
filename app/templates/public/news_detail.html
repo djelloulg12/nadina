@@ -1,0 +1,46 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="auth-back mb-3">
+    <a href="/news">← عودة للأخبار</a>
+  </div>
+
+  <article class="card">
+    {% if news.cover_url %}
+      <img src="{{ news.cover_url }}" alt="{{ news.title }}"
+           style="width: 100%; max-height: 340px; object-fit: cover; border-radius: 12px 12px 0 0;">
+    {% endif %}
+
+    <div class="card-body" style="padding: 1.75rem;">
+      <div class="d-flex flex-wrap gap-2 align-center mb-3">
+        <span class="badge badge-primary">{{ news.kind|status_label }}</span>
+        {% if news.is_pinned %}<span class="badge badge-warning">مثبّت</span>{% endif %}
+        {% if club %}
+          <a class="badge badge-info" href="/clubs/{{ club.slug }}">{{ club.name }}</a>
+        {% endif %}
+      </div>
+
+      <h1 style="font-size: clamp(1.3rem, 3vw, 1.9rem); margin: 0 0 .6rem;">{{ news.title }}</h1>
+
+      <div class="text-muted text-sm d-flex gap-3 flex-wrap mb-3">
+        <span>📅 {{ news.published_at|datetime if news.published_at else '—' }}</span>
+        <span>👁 {{ news.views_count|number }} مشاهدة</span>
+        {% if news.event_date %}
+          <span class="text-danger">📍 {{ news.event_date|date }}{% if news.location %} — {{ news.location }}{% endif %}</span>
+        {% endif %}
+      </div>
+
+      <div style="white-space: pre-line; line-height: 1.85;">{{ news.content }}</div>
+    </div>
+  </article>
+
+  {% if related %}
+  <div class="section-title mt-4">أخبار ذات صلة</div>
+  <div class="grid grid-2">
+    {% for item in related %}{{ ui.news_card(item, club) }}{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

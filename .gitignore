@@ -1,0 +1,68 @@
+# =====================================================================
+#  ملفات النشر ومخرجات النشر
+# =====================================================================
+
+# --- النظام ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+
+# --- الأدوات ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- البيئة والأسرار ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# --- البيانات المحلية (لا تُرفع قاعدة بيانات SQLite) ---
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.bak
+
+# --- ملفات العمل المؤقتة ---
+*.log
+server.log
+server.err
+s.log
+s.err
+*.txt.bak
+_tmp*
+_*.py
+!_*.pyc
+tmp/
+temp/
+
+# --- المحرّرات ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- نظام التشغيل ---
+*.exe
+*.dll
+*.pdb
+Thumbs.db

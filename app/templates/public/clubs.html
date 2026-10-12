@@ -1,0 +1,96 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">دليل الأندية</h1>
+      <p class="page-subtitle">{{ total|number }} نادي مسجّل</p>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 280px 1fr; gap: 1.5rem;">
+
+    {# ================= الفلاتر ================= #}
+    <aside class="card" style="align-self: start;">
+      <div class="card-header">
+        <div class="card-title">تصفية النتائج</div>
+      </div>
+      <div class="card-body">
+        <form method="get" action="/clubs" data-auto-submit>
+          <div class="form-group">
+            <label class="form-label" for="search">كلمة البحث</label>
+            <input class="form-control" id="search" name="search" type="search"
+                   value="{{ filters.search|default('') }}"
+                   placeholder="اسم النادي أو المدينة">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="wilaya">الولاية</label>
+            <select class="form-select" id="wilaya" name="wilaya">
+              <option value="">كل الولايات</option>
+              {% for w in wilayas %}
+                <option value="{{ w }}" {{ 'selected' if filters.wilaya == w }}>{{ w }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="city">المدينة</label>
+            <input class="form-control" id="city" name="city"
+                   value="{{ filters.city|default('') }}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="sport_id">الرياضة</label>
+            <select class="form-select" id="sport_id" name="sport_id">
+              <option value="">كل الرياضات</option>
+              {% for s in sports %}
+                <option value="{{ s.id }}"
+                  {{ 'selected' if filters.sport_id and filters.sport_id|string == s.id|string }}>
+                  {{ s.icon }} {{ s.name }} ({{ s.count }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" type="submit">تطبيق</button>
+            <a class="btn btn-ghost btn-sm" href="/clubs">إعادة تعيين</a>
+          </div>
+        </form>
+      </div>
+
+      {% if sports %}
+      <div class="card-body" style="border-top: 1px solid var(--border-color);">
+        <div class="fw-bold text-sm mb-2">الرياضات</div>
+        <div class="d-flex flex-wrap gap-1">
+          {% for s in sports %}
+            <a class="badge {{ 'badge-primary' if filters.sport_id and filters.sport_id|string == s.id|string else 'badge-neutral' }}"
+               href="{{ query_string(request, sport_id=s.id) }}">{{ s.icon }} {{ s.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </aside>
+
+    {# ================= النتائج ================= #}
+    <div>
+      {% if clubs %}
+        <div class="grid grid-2">
+          {% for club in clubs %}{{ ui.club_card(club) }}{% endfor %}
+        </div>
+
+        <div class="mt-4">
+          {{ ui.pagination(page, total, per_page, '/clubs') }}
+        </div>
+      {% else %}
+        {{ ui.empty_state('🔍', 'لا توجد نتائج',
+                          'جرّب توسيع نطاق البحث أو إزالة بعض الفلاتر.',
+                          '/clubs', 'إزالة الفلاتر') }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

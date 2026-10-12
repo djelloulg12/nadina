@@ -1,0 +1,20 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="section">
+    <div class="empty-state empty-state-icon-lg">
+      <div class="empty-state-icon" aria-hidden="true">🎉</div>
+      <div class="empty-state-title">تم إرسال طلب التسجيل</div>
+      <div class="empty-state-text">
+        شكراً لك. وصل طلبك إلى إدارة {{ club.name }}، وسيتواصل معك على الرقم
+        الذي أدخلته لتأكيد الموعد وإتمام الإجراءات.
+      </div>
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="/clubs/{{ club.slug }}">صفحة {{ club.name }}</a>
+        <a class="btn btn-outline" href="/clubs">تصفّح أندية أخرى</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

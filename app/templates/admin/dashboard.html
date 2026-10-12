@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set s = stats %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">لوحة المنصة</h1>
+    <p class="page-subtitle">نظرة شاملة على كل الأندية والمستخدمين</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" href="/admin/clubs">🏟️ الأندية</a>
+    <a class="btn btn-outline btn-sm" href="/admin/audit">🛡️ سجل التدقيق</a>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-3">
+  {{ ui.stat_card('أندية نشطة', s.clubs.total_active|number, '🏟️', 'primary',
+                  (s.clubs.pending|string ~ ' بانتظار الموافقة')) }}
+  {{ ui.stat_card('إجمالي الرياضيين', s.athletes.total|number, '🏃', 'success',
+                  (s.users.total|string ~ ' مستخدم')) }}
+  {{ ui.stat_card('اشتراكات تنتهي قريباً', s.clubs.expiring_soon|number, '⏳',
+                  'warning' if s.clubs.expiring_soon else 'success',
+                  'خلال 7 أيام') }}
+  {{ ui.stat_card('إيراد الشهر', s.revenue.month|money_short, '💳', 'info') }}
+</div>
+
+{% if s.clubs.pending %}
+<div class="card mb-3" style="border-color: var(--warning);">
+  <div class="card-header"><div class="card-title">أندية بانتظار الموافقة</div></div>
+  <div class="card-body text-center">
+    <div class="stat-value">{{ s.clubs.pending }}</div>
+    <a class="btn btn-warning btn-sm mt-2" href="/admin/clubs?status=pending">
+      مراجعة الطلبات
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">أكبر الأندية</div>
+      <div class="card-subtitle">مرتّبة بعدد الأعضاء</div>
+    </div>
+    <div class="card-body card-body-flush">
+      {% if s.top_clubs %}
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr><th>#</th><th>النادي</th><th class="text-end-cell">الأعضاء</th></tr>
+            </thead>
+            <tbody>
+              {% for c in s.top_clubs %}
+              <tr>
+                <td class="text-muted">{{ loop.index }}</td>
+                <td class="fw-bold">{{ c.name }}</td>
+                <td class="text-end-cell">{{ c.members|number }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('🏟️', 'لا توجد أندية نشطة بعد', small=true) }}
+      {% endif %}
+    </div>
+  </div>
+
+  <aside>
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">حالة الأندية</div></div>
+      <div class="card-body">
+        <table class="table table-compact table-borderless mb-0">
+          <tbody>
+            <tr><td class="text-muted">نشطة</td>
+                <td class="text-end-cell">
+                  <span class="badge badge-success">{{ s.clubs.total_active }}</span>
+                </td></tr>
+            <tr><td class="text-muted">بانتظار الموافقة</td>
+                <td class="text-end-cell">
+                  <span class="badge badge-warning">{{ s.clubs.pending }}</span>
+                </td></tr>
+            <tr><td class="text-muted">منتهية الاشتراك</td>
+                <td class="text-end-cell">
+                  <span class="badge badge-danger">{{ s.clubs.expired }}</span>
+                </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">اختصارات</div></div>
+      <div class="card-body d-grid gap-2">
+        <a class="btn btn-outline btn-block" href="/admin/clubs?status=pending">
+          مراجعة الأندية الجديدة
+        </a>
+        <a class="btn btn-outline btn-block" href="/admin/plans">إدارة خطط الاشتراك</a>
+        <a class="btn btn-outline btn-block" href="/admin/audit">سجل التدقيق</a>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

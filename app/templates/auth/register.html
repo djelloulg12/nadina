@@ -1,0 +1,129 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set v = form.get if form else None %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-container">
+    <div class="auth-card auth-card-lg">
+
+      <div class="auth-header">
+        <img src="/static/icons/icon.svg" alt="" width="46" height="46" class="auth-logo">
+        <h1 class="auth-title">فتح حساب نادي</h1>
+        <p class="auth-subtitle">
+          سجّل بيانات ناديك وسيراجعها فريق المنصة قبل التفعيل.
+        </p>
+      </div>
+
+      {% if error %}
+        {{ ui.alert(error, 'danger') }}
+      {% endif %}
+
+      {{ ui.alert('النادي الجديد يُنشأ بحالة «قيد المراجعة» ولا يمكنه استقبال رياضيين قبل موافقة إدارة المنصة.', 'info', 'معلومة مهمة') }}
+
+      <form method="post" action="/auth/register" novalidate>
+
+        <div class="section-title">بيانات النادي</div>
+
+        <div class="form-group">
+          <label class="form-label" for="club_name">
+            اسم النادي <span class="required">*</span>
+          </label>
+          <input class="form-control" id="club_name" name="club_name" required
+                 value="{{ v('club_name', '') if v else '' }}"
+                 placeholder="مثال: نادي التوفيق الرياضي">
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 200px;">
+            <label class="form-label" for="wilaya">الولاية</label>
+            <input class="form-control" id="wilaya" name="wilaya"
+                   value="{{ v('wilaya', '') if v else '' }}" placeholder="الجزائر">
+          </div>
+          <div class="form-group" style="flex:1 1 200px;">
+            <label class="form-label" for="city">المدينة / البلدية</label>
+            <input class="form-control" id="city" name="city"
+                   value="{{ v('city', '') if v else '' }}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="description">
+            نبذة عن النادي <span class="optional">(اختياري)</span>
+          </label>
+          <textarea class="form-control form-textarea" id="description" name="description"
+                    rows="3" placeholder="عرّف بالنادي وتخصصاته الرياضية…">{{ v('description', '') if v else '' }}</textarea>
+        </div>
+
+        {% if sports %}
+        <div class="form-group">
+          <span class="form-label">الرياضات المتوفرة <span class="optional">(اختياري)</span></span>
+          <div class="d-flex flex-wrap gap-2">
+            {% for s in sports %}
+              <label class="form-check">
+                <input type="checkbox" name="sport_ids" value="{{ s.id }}"
+                       {{ 'checked' if v and v.getlist('sport_ids') and s.id|string in v.getlist('sport_ids') }}>
+                <span>{{ s.icon }} {{ s.name_ar }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="divider-text mt-4 mb-3">بيانات المسؤول</div>
+
+        <div class="form-group">
+          <label class="form-label" for="admin_name">
+            اسم المسؤول <span class="required">*</span>
+          </label>
+          <input class="form-control" id="admin_name" name="admin_name" required
+                 value="{{ v('admin_name', '') if v else '' }}">
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 200px;">
+            <label class="form-label" for="phone">
+              رقم الهاتف <span class="required">*</span>
+            </label>
+            <input class="form-control" id="phone" name="phone" dir="ltr" required
+                   inputmode="tel" value="{{ v('phone', '') if v else '' }}"
+                   placeholder="0555123456">
+          </div>
+          <div class="form-group" style="flex:1 1 200px;">
+            <label class="form-label" for="email">البريد الإلكتروني</label>
+            <input class="form-control" id="email" name="email" type="email" dir="ltr"
+                   value="{{ v('email', '') if v else '' }}">
+          </div>
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 200px;">
+            <label class="form-label" for="password">
+              كلمة المرور <span class="required">*</span>
+            </label>
+            <input class="form-control" id="password" name="password" type="password"
+                   dir="ltr" required minlength="8" autocomplete="new-password">
+            <div class="form-hint">8 أحرف على الأقل، مع حرف كبير وحرف صغير ورقم</div>
+          </div>
+          <div class="form-group" style="flex:1 1 200px;">
+            <label class="form-label" for="password_confirm">
+              تأكيد كلمة المرور <span class="required">*</span>
+            </label>
+            <input class="form-control" id="password_confirm" name="password_confirm"
+                   type="password" dir="ltr" required minlength="8" autocomplete="new-password">
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg mt-2" type="submit">
+          إرسال طلب الفتح
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        لديك حساب بالفعل؟ <a href="/auth/login">تسجيل الدخول</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

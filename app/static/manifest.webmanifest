@@ -1,0 +1,63 @@
+{
+  "name": "المنصة الشاملة لإدارة الأندية الرياضية",
+  "short_name": "المنصة الشاملة",
+  "description": "منصة سحابية متكاملة لتسيير الأندية الرياضية: الرياضيون، الأفواج، الحصص، الحضور والتسيير المالي.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f766e",
+  "categories": ["business", "productivity", "sports", "education"],
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "لوحة التحكم",
+      "short_name": "لوحة التحكم",
+      "description": "الانتقال مباشرة إلى لوحة تحكم النادي",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/static/icons/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "الرياضيون",
+      "short_name": "الرياضيون",
+      "description": "قائمة الرياضيين المنخرطين في النادي",
+      "url": "/club/athletes",
+      "icons": [
+        {
+          "src": "/static/icons/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

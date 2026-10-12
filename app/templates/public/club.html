@@ -1,0 +1,166 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+
+{# ================= ترويسة النادي ================= #}
+<section class="section"
+         {% if club.cover_url %}
+         style="background-image: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.55)), url('{{ club.cover_url }}'); background-size: cover; background-position: center;"
+         {% endif %}>
+  <div class="container">
+    <div class="d-flex flex-wrap gap-4 align-center">
+      {% if club.logo_url %}
+        <img src="{{ club.logo_url }}" alt="{{ club.name }}" width="96" height="96"
+             style="border-radius: 20px; object-fit: cover; border: 3px solid rgba(255,255,255,.5);">
+      {% else %}
+        <span class="avatar avatar-xl" aria-hidden="true">{{ club.name|initials }}</span>
+      {% endif %}
+
+      <div style="flex: 1 1 260px; color: {{ 'inherit' if club.cover_url else '' }}">
+        <h1 style="font-size: clamp(1.4rem, 3vw, 2rem); margin: 0 0 .3rem;">{{ club.name }}</h1>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="badge badge-info">👥 {{ club.members_count|number }} عضو</span>
+          {% if club.rating %}<span class="badge badge-warning">★ {{ club.rating }}</span>{% endif %}
+          {% for s in club.sports or [] %}
+            <span class="badge badge-neutral">{{ s.icon }} {{ s.name_ar }}</span>
+          {% endfor %}
+        </div>
+        {% if club.location_label %}
+          <div class="text-muted">📍 {{ club.location_label }}</div>
+        {% endif %}
+      </div>
+
+      <div class="d-flex flex-column gap-2">
+        {% if club.accepts_online_registration %}
+          <a class="btn btn-primary btn-lg" href="/clubs/{{ club.slug }}/register">
+            سجّل الآن
+          </a>
+        {% endif %}
+        {% if club.phone %}
+          <a class="btn btn-outline" href="tel:{{ club.phone }}" dir="ltr">{{ club.phone }}</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="grid" style="grid-template-columns: 1fr 320px; gap: 1.5rem;">
+
+    {# ================= المحتوى ================= #}
+    <div>
+      {% if club.description %}
+      <div class="card mb-3">
+        <div class="card-header"><div class="card-title">عن النادي</div></div>
+        <div class="card-body">
+          <p style="margin: 0; white-space: pre-line;">{{ club.description }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if groups %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <div class="card-title">الأفواج والفئات التدريبية</div>
+        </div>
+        <div class="card-body card-body-flush">
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>الفوج</th>
+                  <th>المستوى</th>
+                  <th>الأيام</th>
+                  <th>التوقيت</th>
+                  <th class="text-center-cell">المقاعد</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for g in groups %}
+                <tr>
+                  <td class="fw-bold">
+                    {% if g.color %}
+                      <span class="status-dot" style="background: {{ g.color }};"></span>
+                    {% endif %}
+                    {{ g.name }}
+                  </td>
+                  <td>{{ g.level|status_label }}</td>
+                  <td>{{ g.schedule_days|default('—') }}</td>
+                  <td dir="ltr" class="text-end-cell">{{ g.time_label|default('—') }}</td>
+                  <td class="text-center-cell">
+                    <span class="badge badge-{{ 'success' if not g.is_full else 'warning' }}">
+                      {{ g.current_count }}/{{ g.capacity }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">أخبار النادي</div></div>
+        <div class="card-body">
+          {% if news %}
+            <div class="grid grid-2">
+              {% for item in news %}{{ ui.news_card(item, club) }}{% endfor %}
+            </div>
+          {% else %}
+            {{ ui.empty_state('📭', 'لا توجد أخبار بعد', small=true) }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ================= معلومات التواصل ================= #}
+    <aside style="align-self: start;">
+      <div class="card">
+        <div class="card-header"><div class="card-title">معلومات التواصل</div></div>
+        <div class="card-body">
+          <table class="table table-compact table-borderless mb-0">
+            <tbody>
+              {% if club.address %}
+              <tr><td class="text-muted">العنوان</td><td>{{ club.address }}</td></tr>
+              {% endif %}
+              {% if club.wilaya %}
+              <tr><td class="text-muted">الولاية</td><td>{{ club.wilaya }}</td></tr>
+              {% endif %}
+              {% if club.phone %}
+              <tr><td class="text-muted">الهاتف</td><td dir="ltr" class="text-end-cell">{{ club.phone }}</td></tr>
+              {% endif %}
+              {% if club.email %}
+              <tr><td class="text-muted">البريد</td>
+                  <td dir="ltr" class="text-end-cell">
+                    <a href="mailto:{{ club.email }}">{{ club.email }}</a>
+                  </td></tr>
+              {% endif %}
+              {% if club.website %}
+              <tr><td class="text-muted">الموقع</td>
+                  <td dir="ltr" class="text-end-cell">
+                    <a href="{{ club.website }}" target="_blank" rel="noopener">{{ club.website }}</a>
+                  </td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if club.min_age or club.max_age %}
+      <div class="card mt-3">
+        <div class="card-header"><div class="card-title">الفئات العمرية</div></div>
+        <div class="card-body text-center">
+          <div style="font-size: 1.8rem; font-weight: 700;">
+            {{ club.min_age or '?' }} - {{ club.max_age or '?' }}
+          </div>
+          <div class="text-muted text-sm">سنة</div>
+        </div>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

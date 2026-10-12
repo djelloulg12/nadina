@@ -1,0 +1,46 @@
+# ============================================================
+#  ملفات لا تدخل صورة Docker
+# ============================================================
+
+# --- نظام التحكم بالإصدارات ---
+.git
+.gitignore
+.github
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- البيئة والأسرار ---
+.env
+.env.local
+.env.production
+!.env.example
+
+# --- البيانات المحلية ---
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# --- التطوير ---
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# --- ملفات المشروع ---
+code_artifact.md
+README.md
+.gitignore
+Dockerfile
+.dockerignore
+render.yaml

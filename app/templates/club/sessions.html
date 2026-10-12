@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الحصص التدريبية</h1>
+    <p class="page-subtitle">{{ sessions|length }} حصة</p>
+  </div>
+</div>
+
+<div class="grid grid-2" style="align-items: start;">
+
+  {# ================= نموذج البرمجة ================= #}
+  <div class="card">
+    <div class="card-header"><div class="card-title">برمجة حصة جديدة</div></div>
+    <div class="card-body">
+      {% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+      <form method="post" action="/club/sessions" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="group_id">
+            الفوج <span class="optional">(اختياري)</span>
+          </label>
+          <select class="form-select" id="group_id" name="group_id">
+            <option value="">حصة عامة (بدون فوج)</option>
+            {% for g in groups %}
+              <option value="{{ g.id }}">{{ g.name }} — {{ g.time_label }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">عند اختيار فوج تُحسب قائمة الحضور تلقائياً.</div>
+        </div>
+
+        {{ ui.field('session_date', 'التاريخ', today().isoformat(), type='date', required=True) }}
+
+        <div class="form-row d-flex gap-3">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" for="start_time">من <span class="required">*</span></label>
+            <input class="form-control" id="start_time" name="start_time" type="time"
+                   dir="ltr" value="16:00" required>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" for="end_time">إلى <span class="required">*</span></label>
+            <input class="form-control" id="end_time" name="end_time" type="time"
+                   dir="ltr" value="17:30" required>
+          </div>
+        </div>
+
+        {{ ui.field('title', 'عنوان الحصة', '', placeholder='مثال: تدريب تكتيكي') }}
+        {{ ui.field('location', 'المكان', '') }}
+        {{ ui.textarea('objectives', 'أهداف الحصة', '', rows=2) }}
+
+        <button class="btn btn-primary btn-block" type="submit">برمجة الحصة</button>
+      </form>
+    </div>
+  </div>
+
+  {# ================= الفلاتر والقائمة ================= #}
+  <div>
+    <div class="card mb-3">
+      <div class="card-body">
+        <form method="get" action="/club/sessions" data-auto-submit
+              class="d-flex flex-wrap gap-3 align-end">
+          <div class="form-group" style="flex:1 1 170px; margin:0;">
+            <label class="form-label" for="start_date">من تاريخ</label>
+            <input class="form-control" id="start_date" name="start_date" type="date"
+                   dir="ltr" value="{{ filters.start_date|default('') }}">
+          </div>
+          <div class="form-group" style="flex:1 1 170px; margin:0;">
+            <label class="form-label" for="group_id_f">الفوج</label>
+            <select class="form-select" id="group_id_f" name="group_id">
+              <option value="">كل الأفواج</option>
+              {% for g in groups %}
+                <option value="{{ g.id }}"
+                  {{ 'selected' if filters.group_id and filters.group_id|string == g.id|string }}>
+                  {{ g.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group" style="flex:1 1 150px; margin:0;">
+            <label class="form-label" for="status">الحالة</label>
+            <select class="form-select" id="status" name="status">
+              <option value="">الكل</option>
+              {% for value, label in [('scheduled','مجدولة'),('completed','مكتملة'),('cancelled','ملغاة')] %}
+                <option value="{{ value }}" {{ 'selected' if filters.status == value }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">تصفية</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body card-body-flush">
+        {% if sessions %}
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>التوقيت</th>
+                  <th>الفوج</th>
+                  <th>الحالة</th>
+                  <th class="text-center-cell">الحضور</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in sessions %}
+                <tr>
+                  <td>
+                    <div class="fw-bold">{{ s.session_date|date }}</div>
+                    <div class="text-muted text-sm">{{ s.session_date|day }}</div>
+                  </td>
+                  <td dir="ltr" class="text-end-cell">{{ s.time_label }}</td>
+                  <td>{{ s.group.name if s.group else '—' }}</td>
+                  <td>{{ ui.badge(s.status) }}</td>
+                  <td class="text-center-cell">
+                    <span class="badge badge-{{ 'success' if s.present_count else 'secondary' }}">
+                      {{ s.present_count }}/{{ s.expected_count }}
+                    </span>
+                  </td>
+                  <td class="text-end-cell">
+                    <a class="btn btn-outline btn-sm" href="/club/sessions/{{ s.id }}">
+                      الحضور
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ ui.empty_state('📅', 'لا توجد حصص',
+                            'برمج أول حصة من النموذج المجاور.', small=true) }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

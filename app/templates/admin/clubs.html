@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">إدارة الأندية</h1>
+    <p class="page-subtitle">{{ total|number }} نادي</p>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" action="/admin/clubs" data-auto-submit
+          class="d-flex flex-wrap gap-3 align-end">
+      <div class="form-group" style="flex:2 1 240px; margin:0;">
+        <label class="form-label" for="search">بحث</label>
+        <input class="form-control" id="search" name="search" type="search"
+               value="{{ filters.search|default('') }}" placeholder="اسم النادي">
+      </div>
+      <div class="form-group" style="flex:1 1 180px; margin:0;">
+        <label class="form-label" for="status">الحالة</label>
+        <select class="form-select" id="status" name="status">
+          <option value="">الكل</option>
+          {% for value, label in [('pending','بانتظار الموافقة'),('active','نشط'),
+            ('suspended','موقوف'),('expired','منتهٍ'),('rejected','مرفوض')] %}
+            <option value="{{ value }}" {{ 'selected' if filters.status == value }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">تصفية</button>
+      <a class="btn btn-ghost" href="/admin/clubs">إعادة تعيين</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body card-body-flush">
+    {% if clubs %}
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>النادي</th><th>الموقع</th><th>الاتصال</th>
+              <th class="text-center-cell">الأعضاء</th>
+              <th>الاشتراك</th><th class="text-center-cell">الحالة</th>
+              <th class="text-end-cell">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for club in clubs %}
+            <tr>
+              <td>
+                <div class="d-flex align-center gap-2">
+                  {% if club.logo_url %}
+                    <img src="{{ club.logo_url }}" alt="" width="36" height="36"
+                         style="border-radius: 8px; object-fit: cover;">
+                  {% else %}
+                    <span class="avatar avatar-sm" aria-hidden="true">{{ club.name|initials }}</span>
+                  {% endif %}
+                  <div>
+                    <div class="fw-bold">{{ club.name }}</div>
+                    <div class="text-muted text-sm" dir="ltr">{{ club.slug }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-sm">{{ club.location_label|default('—') }}</td>
+              <td dir="ltr" class="text-end-cell text-sm">{{ club.phone|default('—') }}</td>
+              <td class="text-center-cell">{{ club.members_count|number }}</td>
+              <td class="text-sm">
+                {% if club.subscription_end %}
+                  {{ club.subscription_end|date }}
+                  {% if club.is_subscription_expiring %}
+                    <span class="badge badge-warning">قارب الانتهاء</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center-cell">{{ ui.badge(club.status) }}</td>
+              <td class="text-end-cell">
+                <div class="table-actions d-flex gap-1 justify-end">
+                  {% if club.status != 'active' %}
+                    <form method="post" action="/admin/clubs/{{ club.id }}/activate" class="m-0"
+                          data-confirm data-confirm-title="تفعيل النادي"
+                          data-confirm-text="سيتمكن طاقم {{ club.name }} من العمل.">
+                      <button class="btn btn-icon btn-ghost btn-sm btn-success"
+                              type="submit" title="تفعيل">✓</button>
+                    </form>
+                  {% else %}
+                    <button class="btn btn-icon btn-ghost btn-sm btn-danger" type="button"
+                            title="إيقاف" data-modal-open="suspend-{{ club.id }}">⏸</button>
+                  {% endif %}
+
+                  <button class="btn btn-icon btn-ghost btn-sm" type="button"
+                          title="تجديد الاشتراك" data-modal-open="renew-{{ club.id }}">💳</button>
+                  <a class="btn btn-icon btn-ghost btn-sm" title="الصفحة العامة"
+                     href="/clubs/{{ club.slug }}" target="_blank">👁</a>
+                </div>
+
+                {# ---------- نافذة الإيقاف ---------- #}
+                <div class="modal" id="suspend-{{ club.id }}" role="dialog" aria-modal="true">
+                  <div class="modal-backdrop" data-modal-close></div>
+                  <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h3 class="modal-title">إيقاف {{ club.name }}</h3>
+                        <button class="modal-close" type="button" data-modal-close>×</button>
+                      </div>
+                      <form method="post" action="/admin/clubs/{{ club.id }}/suspend">
+                        <div class="modal-body">
+                          <div class="form-group">
+                            <label class="form-label" for="reason-{{ club.id }}">سبب الإيقاف</label>
+                            <input class="form-control" id="reason-{{ club.id }}" name="reason"
+                                   value="إجراء إداري">
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button class="btn btn-ghost" type="button" data-modal-close>إلغاء</button>
+                          <button class="btn btn-danger" type="submit">تأكيد الإيقاف</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                {# ---------- نافذة التجديد ---------- #}
+                <div class="modal" id="renew-{{ club.id }}" role="dialog" aria-modal="true">
+                  <div class="modal-backdrop" data-modal-close></div>
+                  <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h3 class="modal-title">تجديد اشتراك {{ club.name }}</h3>
+                        <button class="modal-close" type="button" data-modal-close>×</button>
+                      </div>
+                      <form method="post" action="/admin/clubs/{{ club.id }}/renew">
+                        <div class="modal-body">
+                          <div class="form-group">
+                            <label class="form-label" for="plan-{{ club.id }}">الخطة</label>
+                            <select class="form-select" id="plan-{{ club.id }}" name="plan_id">
+                              <option value="">الخطة الحالية</option>
+                            </select>
+                          </div>
+                          <div class="form-group">
+                            <label class="form-label" for="months-{{ club.id }}">المدة (بالأشهر)</label>
+                            <input class="form-control" id="months-{{ club.id }}" name="months"
+                                   type="number" value="12" min="1" max="36">
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button class="btn btn-ghost" type="button" data-modal-close>إلغاء</button>
+                          <button class="btn btn-primary" type="submit">تجديد</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.empty_state('🏟️', 'لا توجد أنندية',
+                        'جرّب تغيير عوامل التصفية.', '/admin/clubs', 'عرض الكل') }}
+    {% endif %}
+  </div>
+
+  {% if total and per_page %}
+  <div class="table-footer">{{ ui.pagination(page, total, per_page, '/admin/clubs') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

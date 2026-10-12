@@ -1,0 +1,306 @@
+{# =========================================================================
+   القالب الأساسي (Dashboard Layout)
+   ---------------------------------------------------------------------
+   الهيكل العام لمنصات العمل: شريط جانبي + شريط علوي + منطقة المحتوى.
+
+   التنقل مبني على **رتبة المستخدم**، لا على قائمة ثابتة: كل رتبة ترى
+   فقط ما يهمها فعلاً. هذا يقلّل cognitive load ويمنع ظهور أزرار
+   لا يستطيع المستخدم الضغط عليها.
+   ========================================================================= #}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <title>{{ page_title|default('لوحة التحكم') }} — {{ APP_NAME }}</title>
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
+
+  {#- تُضبط السمة قبل تحميل CSS لتفادي وميض السمة الخاطئة -#}
+  <script>
+    try {
+      document.documentElement.dataset.theme =
+        localStorage.getItem('mashia-theme') || 'light';
+    } catch (e) { /* الوضع الخاص */ }
+  </script>
+</head>
+
+<body>
+<a href="#main-content" class="sr-only">تخطَّ إلى المحتوى الرئيسي</a>
+
+<div class="app-shell">
+
+  {# ================= الشريط الجانبي ================= #}
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      {% if current_club and current_club.logo_url %}
+        <img src="{{ current_club.logo_url }}" alt="{{ current_club.name }}">
+      {% else %}
+        <img src="/static/icons/icon.svg" alt="{{ APP_NAME }}">
+      {% endif %}
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-title">{{ current_club.name if current_club else APP_NAME }}</div>
+        <div class="sidebar-brand-subtitle">
+          {{ current_user.role|role_label if current_user else 'بوابة الجمهور' }}
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="القائمة الرئيسية">
+
+      {# ---- الزائر ---- #}
+      {% if not current_user %}
+        <div class="nav-section">
+          <div class="nav-section">تصفّح</div>
+          <a class="nav-link {{ 'active' if active_nav == 'home' }}" href="/">
+            <span class="nav-icon" aria-hidden="true">🏠</span>
+            <span class="nav-text">الرئيسية</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'clubs' }}" href="/clubs">
+            <span class="nav-icon" aria-hidden="true">🏟️</span>
+            <span class="nav-text">دليل الأندية</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'news' }}" href="/news">
+            <span class="nav-icon" aria-hidden="true">📰</span>
+            <span class="nav-text">الأخبار</span>
+          </a>
+        </div>
+        <div class="sidebar-footer">
+          <a class="btn btn-primary btn-block" href="/auth/login">تسجيل الدخول</a>
+        </div>
+
+      {# ---- مدير المنصة ---- #}
+      {% elif current_user.role.value == 'super_admin' %}
+        <div class="nav-section">
+          <div class="nav-section">الإدارة</div>
+          <a class="nav-link {{ 'active' if active_nav == 'dashboard' }}" href="/admin">
+            <span class="nav-icon" aria-hidden="true">📊</span>
+            <span class="nav-text">لوحة المنصة</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'clubs' }}" href="/admin/clubs">
+            <span class="nav-icon" aria-hidden="true">🏟️</span>
+            <span class="nav-text">الأندية</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'plans' }}" href="/admin/plans">
+            <span class="nav-icon" aria-hidden="true">💳</span>
+            <span class="nav-text">خطط الاشتراك</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'audit' }}" href="/admin/audit">
+            <span class="nav-icon" aria-hidden="true">🛡️</span>
+            <span class="nav-text">سجل التدقيق</span>
+          </a>
+        </div>
+
+      {# ---- إدارة النادي / الإداري ---- #}
+      {% elif current_user.role.value in ('club_admin', 'receptionist') %}
+        <div class="nav-section">
+          <div class="nav-section">النادي</div>
+          <a class="nav-link {{ 'active' if active_nav == 'dashboard' }}" href="/club">
+            <span class="nav-icon" aria-hidden="true">📊</span>
+            <span class="nav-text">لوحة التحكم</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'athletes' }}" href="/club/athletes">
+            <span class="nav-icon" aria-hidden="true">🏃</span>
+            <span class="nav-text">الرياضيون</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'groups' }}" href="/club/groups">
+            <span class="nav-icon" aria-hidden="true">👥</span>
+            <span class="nav-text">الأفواج</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'sessions' }}" href="/club/sessions">
+            <span class="nav-icon" aria-hidden="true">📅</span>
+            <span class="nav-text">الحصص</span>
+          </a>
+        </div>
+
+        {% if user_can(current_user, 'finance.read') %}
+        <div class="nav-section">
+          <div class="nav-section">المالية</div>
+          <a class="nav-link {{ 'active' if active_nav == 'finance' }}" href="/club/finance">
+            <span class="nav-icon" aria-hidden="true">💰</span>
+            <span class="nav-text">نظرة عامة</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'invoices' }}" href="/club/finance/invoices">
+            <span class="nav-icon" aria-hidden="true">🧾</span>
+            <span class="nav-text">الفواتير</span>
+          </a>
+        </div>
+        {% endif %}
+
+        <div class="nav-section">
+          <div class="nav-section">أخرى</div>
+          {% if user_can(current_user, 'staff.read') %}
+          <a class="nav-link {{ 'active' if active_nav == 'staff' }}" href="/club/staff">
+            <span class="nav-icon" aria-hidden="true">👔</span>
+            <span class="nav-text">الطاقم</span>
+          </a>
+          {% endif %}
+          <a class="nav-link {{ 'active' if active_nav == 'news' }}" href="/club/news">
+            <span class="nav-icon" aria-hidden="true">📣</span>
+            <span class="nav-text">الأخبار</span>
+          </a>
+          {% if user_can(current_user, 'registrations.read') %}
+          <a class="nav-link {{ 'active' if active_nav == 'registrations' }}" href="/club/registrations">
+            <span class="nav-icon" aria-hidden="true">📝</span>
+            <span class="nav-text">طلبات التسجيل</span>
+          </a>
+          {% endif %}
+          {% if user_can(current_user, 'import_export.read') %}
+          <a class="nav-link {{ 'active' if active_nav == 'import' }}" href="/club/import">
+            <span class="nav-icon" aria-hidden="true">📥</span>
+            <span class="nav-text">الاستيراد والتصدير</span>
+          </a>
+          {% endif %}
+        </div>
+
+      {# ---- المدرب ---- #}
+      {% elif current_user.role.value == 'coach' %}
+        <div class="nav-section">
+          <div class="nav-section">التدريب</div>
+          <a class="nav-link {{ 'active' if active_nav == 'dashboard' }}" href="/coach">
+            <span class="nav-icon" aria-hidden="true">📊</span>
+            <span class="nav-text">لوحة التحكم</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'groups' }}" href="/coach/groups">
+            <span class="nav-icon" aria-hidden="true">👥</span>
+            <span class="nav-text">أفواجي</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'sessions' }}" href="/coach/sessions">
+            <span class="nav-icon" aria-hidden="true">📅</span>
+            <span class="nav-text">حصص اليوم</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'evaluations' }}" href="/coach/evaluations">
+            <span class="nav-icon" aria-hidden="true">⭐</span>
+            <span class="nav-text">التقييمات</span>
+          </a>
+        </div>
+
+      {# ---- ولي الأمر ---- #}
+      {% elif current_user.role.value in ('parent', 'athlete') %}
+        <div class="nav-section">
+          <div class="nav-section">متابعة الأبناء</div>
+          <a class="nav-link {{ 'active' if active_nav == 'dashboard' }}" href="/parent">
+            <span class="nav-icon" aria-hidden="true">👨‍👩‍👧</span>
+            <span class="nav-text">أبنائي</span>
+          </a>
+          <a class="nav-link {{ 'active' if active_nav == 'finance' }}" href="/parent/finance">
+            <span class="nav-icon" aria-hidden="true">💳</span>
+            <span class="nav-text">الوضع المالي</span>
+          </a>
+        </div>
+      {% endif %}
+
+      {% if current_user %}
+      <div class="nav-section">
+        <div class="nav-section">الحساب</div>
+        <a class="nav-link {{ 'active' if active_nav == 'profile' }}" href="/profile">
+          <span class="nav-icon" aria-hidden="true">⚙️</span>
+          <span class="nav-text">الملف الشخصي</span>
+        </a>
+        <a class="nav-link {{ 'active' if active_nav == 'notifications' }}" href="/club/notifications">
+          <span class="nav-icon" aria-hidden="true">🔔</span>
+          <span class="nav-text">الإشعارات</span>
+          {% if unread_notifications %}
+            <span class="nav-badge">{{ unread_notifications }}</span>
+          {% endif %}
+        </a>
+      </div>
+      {% endif %}
+    </nav>
+
+    {% if current_user %}
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar-sm">{{ current_user.full_name|initials }}</span>
+        <div class="nav-text">
+          <div class="text-truncate">{{ current_user.full_name }}</div>
+          <div class="text-muted text-sm">{{ current_user.role|role_label }}</div>
+        </div>
+      </div>
+      <a class="btn btn-ghost btn-sm btn-block mt-2" href="/auth/logout">تسجيل الخروج</a>
+    </div>
+    {% endif %}
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  {# ================= المحتوى ================= #}
+  <div class="main-content">
+
+    <header class="topbar">
+      <button class="btn btn-icon btn-ghost d-lg-none" id="sidebarToggle"
+              type="button" aria-label="القائمة" aria-controls="sidebar">
+        <span aria-hidden="true">☰</span>
+      </button>
+
+      <div class="topbar-title d-none d-md-block">{{ page_title|default('') }}</div>
+
+      <div class="topbar-search d-none d-lg-block">
+        <input type="search" class="form-control" placeholder="بحث سريع…"
+               aria-label="بحث" onkeydown="if(event.key==='Enter'){location.href='/club/athletes?search='+encodeURIComponent(this.value)}">
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn btn-icon btn-ghost" data-theme-toggle type="button"
+                aria-label="تبديل السمة">
+          <span aria-hidden="true">🌓</span>
+        </button>
+
+        <div class="dropdown">
+          <button class="btn btn-icon btn-ghost" data-dropdown type="button"
+                  aria-label="الإشعارات">
+            🔔
+            {% if unread_notifications %}
+              <span class="badge-count" data-notification-count>{{ unread_notifications }}</span>
+            {% endif %}
+          </button>
+          <div class="dropdown-menu dropdown-menu-end" role="menu">
+            <div class="dropdown-header">الإشعارات</div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="/club/notifications">عرض كل الإشعارات</a>
+            <form method="post" action="/club/notifications/read-all" class="m-0">
+              <button class="dropdown-item" type="submit">تعليم الكل كمقروء</button>
+            </form>
+          </div>
+        </div>
+
+        {% if current_user %}
+        <div class="dropdown">
+          <button class="btn btn-ghost" data-dropdown type="button">
+            <span class="avatar avatar-sm">{{ current_user.full_name|initials }}</span>
+            <span class="d-none d-sm-inline">{{ current_user.full_name }}</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end" role="menu">
+            <div class="dropdown-header">
+              {{ current_user.full_name }}<br>
+              <span class="text-muted text-sm">{{ current_user.role|role_label }}</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="/profile">الملف الشخصي</a>
+            <a class="dropdown-item" href="/club/notifications">الإشعارات</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item dropdown-item-danger" href="/auth/logout">تسجيل الخروج</a>
+          </div>
+        </div>
+        {% else %}
+          <a class="btn btn-primary btn-sm" href="/auth/login">دخول</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="page-body" id="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">خطط الاشتراك</h1>
+    <p class="page-subtitle">الخطط المعروضة على الأندية للاشتراك في المنصة</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/admin">← اللوحة</a>
+  </div>
+</div>
+
+{% if plans %}
+  <div class="grid grid-3">
+    {% for p in plans %}
+    <div class="card {{ 'card-hover' if p.is_featured else '' }}"
+         {% if p.is_featured %}style="border-color: var(--primary);"{% endif %}>
+      <div class="card-header">
+        <div>
+          <div class="card-title">{{ p.name }}</div>
+          {% if p.is_featured %}
+            <span class="badge badge-primary">الأكثر اختياراً</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card-body text-center">
+        <div class="stat-value" style="font-size: 2rem;">{{ p.price|money_short }}</div>
+        <div class="text-muted text-sm">
+          لكل {{ p.duration_days }} يوماً
+        </div>
+
+        <table class="table table-compact table-borderless mt-3 text-start">
+          <tbody>
+            <tr><td class="text-muted">حد الرياضيين</td>
+                <td class="text-end-cell">
+                  {{ p.max_athletes|number if p.max_athletes else 'غير محدود' }}
+                </td></tr>
+            <tr><td class="text-muted">حد الأفواج</td>
+                <td class="text-end-cell">
+                  {{ p.max_groups|number if p.max_groups else 'غير محدود' }}
+                </td></tr>
+            <tr><td class="text-muted">حد الطاقم</td>
+                <td class="text-end-cell">
+                  {{ p.max_staff|number if p.max_staff else 'غير محدود' }}
+                </td></tr>
+          </tbody>
+        </table>
+
+        {% if p.features %}
+          <ul class="text-start text-sm mt-3" style="padding-inline-start: 1.2rem;">
+            {% for f in p.features %}
+              <li class="mb-1">✓ {{ f }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card"><div class="card-body">
+    {{ ui.empty_state('💳', 'لا توجد خطط',
+                      'أنشئ خطط اشتراك عبر سكربت البيانات التجريبية أو من لوحة الإدارة.') }}
+  </div></div>
+{% endif %}
+
+{{ ui.alert('تعديل الأسعار/features يتم من قاعدة البيانات أو من سكربت البيانات. '
+            'الخطة المرتبطة بنادٍ سارية تبقى كما هي حتى لو عُدّلت.', 'info') }}
+{% endblock %}

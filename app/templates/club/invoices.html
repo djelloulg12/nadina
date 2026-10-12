@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set METHODS = [('cash','نقداً'),('bank','تحويل بنكي'),('card','بطاقة'),
+                  ('check','شيك'),('online','دفع إلكتروني')] %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الفواتير</h1>
+    <p class="page-subtitle">{{ total|number }} فاتورة</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/club/finance">← المالية</a>
+    <a class="btn btn-outline btn-sm" href="/club/export/athletes">📤 تصدير</a>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+<div class="grid" style="grid-template-columns: 320px 1fr; gap: 1.25rem;">
+
+  {# ================= نموذج الإصدار والدفع ================= #}
+  <aside>
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">إصدار فاتورة</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/finance/invoices" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="athlete_id">
+              الرياضي <span class="required">*</span>
+            </label>
+            <input class="form-control" id="athlete_id" name="athlete_id" type="number"
+                   dir="ltr" required min="1" placeholder="معرّف الرياضي">
+            <div class="form-hint">المعرّف ظاهر في رابط صفحة ملف الرياضي.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="fee_plan_id">خطة الاشتراك</label>
+            <select class="form-select" id="fee_plan_id" name="fee_plan_id">
+              <option value="">— أدخل المبلغ يدوياً —</option>
+              {% for p in plans %}
+                <option value="{{ p.id }}">{{ p.name }} — {{ p.amount|money }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {{ ui.field('amount', 'المبلغ اليدوي (دج)', '', type='number',
+                      attrs='min="0" step="100"', hint='يُستخدم فقط بدون خطة') }}
+          {{ ui.field('discount', 'الخصم (دج)', '0', type='number', attrs='min="0"') }}
+          {{ ui.field('notes', 'ملاحظات', '') }}
+
+          <button class="btn btn-primary btn-block" type="submit">إصدار الفاتورة</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">تسجيل دفعة</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/finance/payments" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="p_invoice_id">رقم الفاتورة</label>
+            <input class="form-control" id="p_invoice_id" name="invoice_id" type="number" dir="ltr">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_athlete_id">
+              أو معرّف الرياضي <span class="optional">(اختياري)</span>
+            </label>
+            <input class="form-control" id="p_athlete_id" name="athlete_id" type="number" dir="ltr">
+            <div class="form-hint">إن تُرك فارغاً، يُسجَّل الدفع على أقدم فاتورة للرياضي.</div>
+          </div>
+
+          {{ ui.field('amount', 'المبلغ (دج)', '', type='number', required=True,
+                      attrs='min="1" step="100"') }}
+
+          <div class="form-group">
+            <label class="form-label" for="method">وسيلة الدفع</label>
+            <select class="form-select" id="method" name="method">
+              {% for value, label in METHODS %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+
+          {{ ui.field('reference', 'المرجع / رقم الشيك', '') }}
+
+          <button class="btn btn-primary btn-block" type="submit">تسجيل الدفعة</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  {# ================= القائمة ================= #}
+  <div>
+    <div class="card mb-3">
+      <div class="card-body">
+        <form method="get" action="/club/finance/invoices" data-auto-submit
+              class="d-flex flex-wrap gap-3 align-end">
+          <div class="form-group" style="flex:1 1 180px; margin:0;">
+            <label class="form-label" for="status">الحالة</label>
+            <select class="form-select" id="status" name="status">
+              <option value="">الكل</option>
+              {% for value, label in [('unpaid','غير مدفوعة'),('partial','جزئية'),
+                ('paid','مدفوعة'),('overdue','متأخرة'),('cancelled','ملغاة')] %}
+                <option value="{{ value }}" {{ 'selected' if filters.status == value }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-check">
+              <input type="checkbox" name="overdue" value="1"
+                     {{ 'checked' if filters.overdue == '1' }}>
+              <span>المتأخرة فقط</span>
+            </label>
+          </div>
+          <button class="btn btn-primary" type="submit">تصفية</button>
+          <a class="btn btn-ghost" href="/club/finance/invoices">إعادة تعيين</a>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body card-body-flush">
+        {% if invoices %}
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>رقم الفاتورة</th>
+                  <th>الرياضي</th>
+                  <th>الفترة</th>
+                  <th>الاستحقاق</th>
+                  <th class="text-end-cell">الإجمالي</th>
+                  <th class="text-end-cell">المتبقي</th>
+                  <th class="text-center-cell">الحالة</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for inv in invoices %}
+                <tr>
+                  <td dir="ltr" class="text-end-cell text-sm">{{ inv.invoice_number }}</td>
+                  <td>
+                    {% if inv.athlete %}
+                      <a href="/club/athletes/{{ inv.athlete.id }}"
+                         class="fw-bold text-decoration-none">{{ inv.athlete.full_name }}</a>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-sm text-muted">{{ inv.period_label }}</td>
+                  <td>
+                    <span class="{{ 'text-danger' if inv.is_overdue }}">
+                      {{ inv.due_date|date }}
+                    </span>
+                    {% if inv.is_overdue %}
+                      <div class="text-danger text-sm">{{ inv.days_overdue }} يوم تأخير</div>
+                    {% endif %}
+                  </td>
+                  <td class="text-end-cell">{{ inv.total|money }}</td>
+                  <td class="text-end-cell fw-bold">{{ inv.amount_due|money }}</td>
+                  <td class="text-center-cell">{{ ui.badge(inv.status) }}</td>
+                  <td class="text-end-cell">
+                    <a class="btn btn-outline btn-sm"
+                       href="/club/finance/invoices/{{ inv.id }}">تفاصيل</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ ui.empty_state('🧾', 'لا توجد فواتير',
+                            'أصدر أول فاتورة من النموذج المجاور.', small=true) }}
+        {% endif %}
+      </div>
+
+      {% if total and per_page %}
+      <div class="table-footer">{{ ui.pagination(page, total, per_page, '/club/finance/invoices') }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

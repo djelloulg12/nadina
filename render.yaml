@@ -1,0 +1,65 @@
+# =====================================================================
+#  Render Blueprint — المنصة الشاملة
+# =====================================================================
+#  الاستخدام: ارفع هذا الملف إلى مستودع GitHub، ثم في Render اختر
+#  "New -> Blueprint" وأشر إلى المستودع. Render يقرأ الملف فينشئ خدمة النشر وقاعدة البيانات.
+#  خدمة الويب وقاعدة البيانات مع ربط متغيرات البيئة بينهما.
+#
+#  ملاحظة: Render يولّد قيمة SECRET_KEY تلقائياً عند أول إنشاء لأن
+#  السطر يستخدم generateValue. لا تضع قيمة سرّية هنا أبداً.
+# =====================================================================
+
+databases:
+  - name: mashia-db
+    databaseName: sports_clubs
+    user: mashia
+    # حجم صغير كافٍ للخطة المجانية (1 غيغابايت)
+    plan: free
+
+services:
+  - type: web
+    name: mashia
+    runtime: docker
+    plan: free
+    region: frankfurt          # أقرب منطقة للمستخدم العربي
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+
+    # رابط Render يمرّ عبر وكيل عكسي ويتصل بخادم Render داخلياً.
+    # fromDatabase يولّد الرابط دون كتابة كلمة المرور في الملف.
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mashia-db
+          property: connectionString
+
+      - key: DB_DRIVER
+        value: postgresql
+
+      # --- الأمان ---
+      # يُولَّد تلقائياً عند أول نشر
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: APP_ENV
+        value: production
+
+      - key: DEBUG
+        value: "false"
+
+      # إجباري في الإنتاج — ترفض إعدادات التطبيق بدونه
+      - key: COOKIE_SECURE
+        value: "true"
+
+      # نطاقات مقبولة في ترويسة Host (تمنع Host header injection)
+      - key: ALLOWED_HOSTS
+        value: "*.onrender.com"
+
+      # --- سلوك التطبيق ---
+      - key: APP_URL
+        value: "https://mashia.onrender.com"
+
+      # لا زرع بيانات تجريبية فوق بيانات حقيقية. لتعبئة قاعدة فارغة
+      # مرة واحدة: غيّرها إلى true، انشر، ثم أعِدها false.
+      - key: SEED_ON_EMPTY
+        value: "false"

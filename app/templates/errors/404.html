@@ -1,0 +1,20 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="section">
+    <div class="empty-state empty-state-icon-lg">
+      <div class="empty-state-icon" aria-hidden="true">🔍</div>
+      <div class="empty-state-title">الصفحة غير موجودة</div>
+      <div class="empty-state-text">
+        {{ message|default('الرابط الذي طلبته غير متاح أو تم نقله.') }}
+      </div>
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="/">العودة للرئيسية</a>
+        <a class="btn btn-outline" href="/clubs">تصفّح الأندية</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

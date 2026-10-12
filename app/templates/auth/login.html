@@ -1,0 +1,76 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-container">
+    <div class="auth-card">
+
+      <div class="auth-header">
+        <img src="/static/icons/icon.svg" alt="" width="46" height="46" class="auth-logo">
+        <h1 class="auth-title">تسجيل الدخول</h1>
+        <p class="auth-subtitle">ادخل إلى مساحتك في {{ APP_NAME }}</p>
+      </div>
+
+      {% if error %}
+        {{ ui.alert(error, 'danger') }}
+      {% endif %}
+
+      <form method="post" action="/auth/login" novalidate>
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+        <div class="form-group">
+          <label class="form-label" for="identifier">
+            البريد الإلكتروني أو رقم الهاتف <span class="required">*</span>
+          </label>
+          <input class="form-control" id="identifier" name="identifier" dir="ltr"
+                 value="{{ identifier|default('') }}" required autofocus
+                 autocomplete="username" placeholder="0555123456 أو name@example.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">
+            كلمة المرور <span class="required">*</span>
+          </label>
+          <input class="form-control" id="password" name="password" type="password"
+                 dir="ltr" required autocomplete="current-password" placeholder="••••••••">
+        </div>
+
+        <div class="form-check mb-3">
+          <input type="checkbox" id="remember" name="remember_me">
+          <label for="remember">تذكّرني على هذا الجهاز</label>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" type="submit">دخول</button>
+      </form>
+
+      <div class="auth-divider">أو</div>
+
+      <a class="btn btn-outline btn-block" href="/auth/register">
+        فتح حساب نادي جديد
+      </a>
+
+      {# ---- حسابات تجريبية: تُخفى في الإنتاج ---- #}
+      <div class="card mt-4" style="background: var(--surface-muted);">
+        <div class="card-body">
+          <div class="fw-bold text-sm mb-2">🔑 حسابات تجريبية</div>
+          <table class="table table-compact mb-0">
+            <tbody>
+              <tr><td>مدير المنصة</td><td dir="ltr" class="text-end-cell">admin@mashia.dz</td></tr>
+              <tr><td>مدير نادي</td><td dir="ltr" class="text-end-cell">admin1@nadi-altoufiq-riadi.dz</td></tr>
+              <tr><td>الأولياء</td><td dir="ltr" class="text-end-cell">parent1@example.dz</td></tr>
+            </tbody>
+          </table>
+          <div class="text-muted text-sm mt-2">
+            كلمة المرور للجميع: <code dir="ltr">Mashia@2024</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-footer">
+        <a href="/">← العودة للرئيسية</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

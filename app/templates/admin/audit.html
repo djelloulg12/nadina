@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set ACTIONS = [('', 'كل الإجراءات'), ('create', 'إنشاء'), ('update', 'تعديل'),
+                  ('delete', 'حذف'), ('login', 'دخول'), ('logout', 'خروج'),
+                  ('login_failed', 'دخول فاشل'), ('payment', 'دفع'),
+                  ('import', 'استيراد'), ('export', 'تصدير')] %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">سجل التدقيق</h1>
+    <p class="page-subtitle">{{ total|number }} حدث — لا يُعدَّل ولا يُحذف</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/admin">← اللوحة</a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" action="/admin/audit" data-auto-submit
+          class="d-flex flex-wrap gap-3 align-end">
+      <div class="form-group" style="flex:1 1 220px; margin:0;">
+        <label class="form-label" for="action">نوع الإجراء</label>
+        <select class="form-select" id="action" name="action">
+          {% for value, label in ACTIONS %}
+            <option value="{{ value }}" {{ 'selected' if filters.action == value }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">تصفية</button>
+      <a class="btn btn-ghost" href="/admin/audit">إعادة تعيين</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body card-body-flush">
+    {% if logs %}
+      <div class="table-wrapper">
+        <table class="table table-compact">
+          <thead>
+            <tr>
+              <th>التاريخ</th><th>المستخدم</th><th>الرتبة</th>
+              <th>الإجراء</th><th>الوصف</th><th dir="ltr">IP</th>
+              <th class="text-center-cell">النتيجة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td class="text-sm">{{ log.created_at|datetime }}</td>
+              <td class="fw-bold">{{ log.user_name|default('—') }}</td>
+              <td class="text-sm text-muted">
+                {{ log.user_role|role_label if log.user_role else '—' }}
+              </td>
+              <td><span class="badge badge-{{ 'success' if log.success else 'danger' }}">
+                {{ log.action|status_label }}
+              </span></td>
+              <td class="text-sm">{{ log.description|default('—') }}</td>
+              <td dir="ltr" class="text-end-cell text-sm text-muted">{{ log.ip_address|default('—') }}</td>
+              <td class="text-center-cell">
+                {{ '✓' if log.success else '✕' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.empty_state('🛡️', 'لا توجد أحداث', 'لا يوجد ما يطابق عوامل التصفية.', small=true) }}
+    {% endif %}
+  </div>
+
+  {% if total and per_page %}
+  <div class="table-footer">{{ ui.pagination(page, total, per_page, '/admin/audit') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

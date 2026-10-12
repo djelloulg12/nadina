@@ -1,0 +1,22 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="section">
+    <div class="empty-state empty-state-icon-lg">
+      <div class="empty-state-icon" aria-hidden="true">🔒</div>
+      <div class="empty-state-title">لا تملك صلاحية الوصول</div>
+      <div class="empty-state-text">
+        {{ message|default('هذه الصفحة مخصصة لرتبة مختلفة عن رتبتك الحالية.') }}
+      </div>
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="/">العودة للرئيسية</a>
+        {% if not current_user %}
+          <a class="btn btn-outline" href="/auth/login">تسجيل الدخول بحساب آخر</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

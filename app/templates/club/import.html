@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الاستيراد والتصدير</h1>
+    <p class="page-subtitle">انقل قوائم الرياضيين بين الأندية وإلى جداول البيانات</p>
+  </div>
+</div>
+
+{# ================= نتيجة عملية سابقة ================= #}
+{% if result %}
+<div class="card mb-3" style="border-color: {{ 'var(--success)' if result.failed == 0 else 'var(--warning)' }};">
+  <div class="card-header">
+    <div class="card-title">
+      {% if result.dry_run %}نتيجة المحاكاة{% else %}نتيجة الاستيراد{% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="grid grid-4 mb-3">
+      {{ ui.stat_card('الصفوف', result.total_rows, '📄', 'primary') }}
+      {{ ui.stat_card('بنجاح', result.imported, '✅', 'success') }}
+      {{ ui.stat_card('متجاوَز', result.skipped, '⏭️', 'info') }}
+      {{ ui.stat_card('بخطأ', result.failed, '❌',
+                      'danger' if result.failed else 'success') }}
+    </div>
+
+    {% if result.errors %}
+      <div class="section-title">تفاصيل الأخطاء</div>
+      <div class="table-wrapper" style="max-height: 320px; overflow-y: auto;">
+        <table class="table table-compact">
+          <thead><tr><th>السطر</th><th>الاسم</th><th>السبب</th></tr></thead>
+          <tbody>
+            {% for e in result.errors %}
+            <tr>
+              <td>{{ e.row }}</td>
+              <td>{{ e.name }}</td>
+              <td class="text-danger">{{ e.error }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.alert('تمت العملية بلا أخطاء.', 'success') }}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+
+  {# ================= الاستيراد ================= #}
+  <div class="card">
+    <div class="card-header"><div class="card-title">📥 استيراد رياضيين</div></div>
+    <div class="card-body">
+      {{ ui.alert('حمّل القالب الجاهز أولاً، املأه، ثم ارفعه هنا. '
+                  'استخدم «المحاكاة» أولاً للتحقق قبل الحفظ.', 'info', 'كيف تعمل الاستيراد؟') }}
+
+      <div class="d-grid gap-2 mb-3">
+        <a class="btn btn-outline" href="/club/import/template">⬇️ تحميل قالب Excel</a>
+      </div>
+
+      <form method="post" action="/club/import" enctype="multipart/form-data" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="file">
+            ملف Excel <span class="required">*</span>
+          </label>
+          <input class="form-control" id="file" name="file" type="file"
+                 accept=".xlsx,.xlsm" required>
+          <div class="form-hint">الصيغ المدعومة: .xlsx و .xlsm</div>
+        </div>
+
+        <div class="form-check mb-3">
+          <input type="checkbox" id="dry_run" name="dry_run" value="1" checked>
+          <label for="dry_run">
+            وضع المحاكاة (لا يحفظ شيئاً — للتحقق من صحة الملف فقط)
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit">
+          {% if result and result.dry_run %}محاكاة{% else %}رفع الملف{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# ================= التصدير ================= #}
+  <div>
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">📤 تصدير البيانات</div></div>
+      <div class="card-body">
+        <p class="text-muted text-sm">
+          ملفات Excel جاهزة للفتح في Excel أو LibreOffice أو Google Sheets،
+          بتنسيق عربي من اليمين إلى اليسار وأرقام مفصولة.
+        </p>
+
+        <div class="d-grid gap-2">
+          <a class="btn btn-primary btn-block" href="/club/export/athletes">
+            ⬇️ تصدير قائمة الرياضيين
+          </a>
+          <a class="btn btn-outline btn-block" href="/club/import/template">
+            ⬇️ تحميل قالب فارغ
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">دليل الأعمدة</div></div>
+      <div class="card-body card-body-flush">
+        <div class="table-wrapper">
+          <table class="table table-compact">
+            <thead><tr><th>العمود</th><th>مطلوب؟</th><th>ملاحظات</th></tr></thead>
+            <tbody>
+              <tr><td>اسم العائلة</td><td><span class="badge badge-danger">نعم</span></td>
+                  <td>مع الاسم الأول</td></tr>
+              <tr><td>الاسم الأول</td><td><span class="badge badge-danger">نعم</span></td><td>—</td></tr>
+              <tr><td>تاريخ الميلاد</td><td><span class="badge badge-neutral">اختياري</span></td>
+                  <td>الصيغة: <code dir="ltr">YYYY-MM-DD</code></td></tr>
+              <tr><td>الجنس</td><td><span class="badge badge-neutral">اختياري</span></td>
+                  <td>ذكر / أنثى</td></tr>
+              <tr><td>الفوج</td><td><span class="badge badge-neutral">اختياري</span></td>
+                  <td>اسم الفوج كما هو في النظام</td></tr>
+              <tr><td>المستوى</td><td><span class="badge badge-neutral">اختياري</span></td>
+                  <td>مبتدئ / هاوٍ / متقدم / نخبة</td></tr>
+              <tr><td>هاتف ولي الأمر</td><td><span class="badge badge-neutral">اختياري</span></td>
+                  <td>يُنشئ حساب ولي أمر تلقائياً</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

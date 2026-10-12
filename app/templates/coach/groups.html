@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">أفواجي</h1>
+    <p class="page-subtitle">{{ groups|length }} فوج</p>
+  </div>
+</div>
+
+{% if groups %}
+  <div class="grid grid-3">
+    {% for g in groups %}
+    <div class="card card-hover">
+      <div class="card-header" {% if g.color %}
+          style="border-inline-start: 4px solid {{ g.color }};">{% endif %}>
+        <div class="card-title">{{ g.name }}</div>
+        <div class="card-subtitle">{{ g.level|status_label }}</div>
+      </div>
+      <div class="card-body">
+        <table class="table table-compact table-borderless mb-0">
+          <tbody>
+            <tr><td class="text-muted">الرياضيون</td>
+                <td class="text-end-cell fw-bold">{{ g.current_count }}</td></tr>
+            <tr><td class="text-muted">الأيام</td>
+                <td class="text-end-cell">{{ g.schedule_days|default('—') }}</td></tr>
+            <tr><td class="text-muted">التوقيت</td>
+                <td class="text-end-cell" dir="ltr">{{ g.time_label|default('—') }}</td></tr>
+            <tr><td class="text-muted">المكان</td>
+                <td class="text-end-cell">{{ g.location|default('—') }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer d-flex gap-2">
+        <a class="btn btn-primary btn-sm" href="/coach/groups/{{ g.id }}">قائمة الرياضيين</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card"><div class="card-body">
+    {{ ui.empty_state('👥', 'لم تُسند إليك أفواج',
+                      'تواصل مع إدارة النادي لإسناد أفواجك.') }}
+  </div></div>
+{% endif %}
+{% endblock %}

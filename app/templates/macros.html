@@ -1,0 +1,255 @@
+{# =========================================================================
+   الماكروز المشتركة (UI Macros)
+   ---------------------------------------------------------------------
+   عناصر واجهة قابلة لإعادة الاستخدام. توحيدها هنا يمنع تكرار الشكل
+   في عشرات القوالب، ويجعل تغيير مظهر زر واحد يتم من سطر واحد.
+   ========================================================================= #}
+
+{# ---------- شارة حالة ---------- #}
+{% macro badge(text, status='', variant='') %}
+  {% set kind = variant or (status|status_badge) %}
+  <span class="badge badge-{{ kind }}">{{ text|status_label if not text else text }}</span>
+{% endmacro %}
+
+{# ---------- صورة رمزية للرياضي/المستخدم ---------- #}
+{% macro avatar(person, size='') %}
+  {% set cls = 'avatar ' + (size if size else '') %}
+  {% if person and person.photo_url %}
+    <span class="{{ cls }}"><img src="{{ person.photo_url }}" alt="{{ person.full_name }}"></span>
+  {% elif person %}
+    <span class="{{ cls }}" aria-hidden="true">{{ person.full_name|initials }}</span>
+  {% else %}
+    <span class="{{ cls }}" aria-hidden="true">؟</span>
+  {% endif %}
+{% endmacro %}
+
+{# ---------- بطاقة إحصائية ---------- #}
+{% macro stat_card(label, value, icon='', tone='', trend=None, trend_up=None) %}
+  <div class="stat-card {{ 'stat-' ~ tone if tone else '' }}">
+    {% if icon %}<div class="stat-icon" aria-hidden="true">{{ icon }}</div>{% endif %}
+    <div class="stat-content">
+      <div class="stat-label">{{ label }}</div>
+      <div class="stat-value">{{ value }}</div>
+      {% if trend is not none %}
+        <div class="stat-meta">
+          <span class="stat-trend {{ 'stat-trend-up' if trend_up else ('stat-trend-down' if trend_up is sameas false else 'stat-trend-flat') }}">
+            {% if trend_up is true %}▲{% elif trend_up is sameas false %}▼{% else %}■{% endif %}
+            {{ trend }}
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{# ---------- حالة فارغة ---------- #}
+{% macro empty_state(icon='📭', title='لا توجد بيانات', text='', action_url='', action_label='', small=false) %}
+  <div class="empty-state {{ 'empty-state-sm' if small else '' }}">
+    <div class="empty-state-icon {{ 'empty-state-icon-lg' if not small else '' }}" aria-hidden="true">{{ icon }}</div>
+    <div class="empty-state-title">{{ title }}</div>
+    {% if text %}<div class="empty-state-text">{{ text }}</div>{% endif %}
+    {% if action_url %}
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="{{ action_url }}">{{ action_label }}</a>
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# ---------- رسالة تنبيه ---------- #}
+{% macro alert(message, type='info', title='', dismissible=false) %}
+  <div class="alert alert-{{ type }} {{ 'alert-dismissible' if dismissible else '' }}" role="alert">
+    <span class="alert-icon" aria-hidden="true">
+      {% if type == 'success' %}✓{% elif type == 'danger' %}✕{% elif type == 'warning' %}⚠{% else %}ℹ{% endif %}
+    </span>
+    <div class="alert-content">
+      {% if title %}<div class="alert-title">{{ title }}</div>{% endif %}
+      <div>{{ message }}</div>
+    </div>
+    {% if dismissible %}
+      <button class="alert-close" type="button" data-alert-dismiss aria-label="إغلاق">×</button>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# ---------- حقول نموذج ---------- #}
+{% macro field(name, label, value='', type='text', required=false, hint='', placeholder='', attrs='') %}
+  <div class="form-group">
+    <label class="form-label" for="f-{{ name }}">
+      {{ label }}{% if required %} <span class="required">*</span>{% else %} <span class="optional">(اختياري)</span>{% endif %}
+    </label>
+    <input class="form-control" id="f-{{ name }}" name="{{ name }}"
+           type="{{ type }}" value="{{ value if value is not none else '' }}"
+           {% if required %}required{% endif %}
+           {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+           {% if type == 'email' %}dir="ltr"{% endif %}
+           {% if type in ('tel',) %}dir="ltr" inputmode="tel"{% endif %}
+           {{ attrs|safe }}>
+    {% if hint %}<div class="form-hint">{{ hint }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro textarea(name, label, value='', rows=4, required=false, hint='', placeholder='') %}
+  <div class="form-group">
+    <label class="form-label" for="f-{{ name }}">
+      {{ label }}{% if required %} <span class="required">*</span>{% else %} <span class="optional">(اختياري)</span>{% endif %}
+    </label>
+    <textarea class="form-control form-textarea" id="f-{{ name }}" name="{{ name }}"
+              rows="{{ rows }}" {% if required %}required{% endif %}
+              {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}>{{ value if value is not none else '' }}</textarea>
+    {% if hint %}<div class="form-hint">{{ hint }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro select(name, label, options, selected='', required=false, hint='', placeholder='') %}
+  <div class="form-group">
+    <label class="form-label" for="f-{{ name }}">
+      {{ label }}{% if required %} <span class="required">*</span>{% else %} <span class="optional">(اختياري)</span>{% endif %}
+    </label>
+    <select class="form-select" id="f-{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+      {% if placeholder %}<option value="">{{ placeholder }}</option>{% endif %}
+      {% for opt in options %}
+        {% set val = opt[0] if opt is not string and opt is sequence else opt %}
+        {% set txt = opt[1] if opt is not string and opt is sequence else opt %}
+        <option value="{{ val }}" {{ 'selected' if selected is not none and (selected|string) == (val|string) }}>
+          {{ txt }}
+        </option>
+      {% endfor %}
+    </select>
+    {% if hint %}<div class="form-hint">{{ hint }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro checkbox(name, label, value='', checked=false) %}
+  <label class="form-check">
+    <input type="checkbox" name="{{ name }}" value="{{ value }}" {{ 'checked' if checked }}>
+    <span>{{ label }}</span>
+  </label>
+{% endmacro %}
+
+{# ---------- شريط ترقيم الصفحات ---------- #}
+{% macro pagination(page, total, per_page, endpoint) %}
+  {% set pages = ((total|int + per_page - 1) // (per_page if per_page else 1)) if per_page else 1 %}
+  {% if pages > 1 %}
+    {% set current = page|int %}
+    <nav class="pagination" aria-label="ترقيم الصفحات">
+      <ul class="d-flex list-none gap-1">
+        <li class="page-item {{ 'disabled' if current <= 1 }}">
+          <a class="page-link" href="{{ query_string(request, page=current - 1) }}"
+             {{ 'aria-disabled=true' if current <= 1 }}>السابق</a>
+        </li>
+
+        {% if current - 2 > 1 %}
+          <li class="page-item"><a class="page-link" href="{{ query_string(request, page=1) }}">1</a></li>
+          {% if current - 2 > 2 %}<li class="page-ellipsis">…</li>{% endif %}
+        {% endif %}
+
+        {% for p in page_range(current, pages) %}
+          <li class="page-item {{ 'active' if p == current }}">
+            <a class="page-link" href="{{ query_string(request, page=p) }}"
+               {{ 'aria-current=page' if p == current }}>{{ p }}</a>
+          </li>
+        {% endfor %}
+
+        {% if current + 2 < pages %}
+          {% if current + 2 < pages - 1 %}<li class="page-ellipsis">…</li>{% endif %}
+          <li class="page-item"><a class="page-link" href="{{ query_string(request, page=pages) }}">{{ pages }}</a></li>
+        {% endif %}
+
+        <li class="page-item {{ 'disabled' if current >= pages }}">
+          <a class="page-link" href="{{ query_string(request, page=current + 1) }}"
+             {{ 'aria-disabled=true' if current >= pages }}>التالي</a>
+        </li>
+      </ul>
+    </nav>
+  {% endif %}
+{% endmacro %}
+
+{# ---------- شريط الأدوات فوق الجدول ---------- #}
+{% macro table_toolbar(search_placeholder='بحث…', target='#data-table') %}
+  <div class="table-toolbar d-flex flex-wrap justify-between gap-2 align-center">
+    <input type="search" class="form-control" style="max-width: 260px;"
+           placeholder="{{ search_placeholder }}" aria-label="بحث في الجدول"
+           data-filter-input data-filter-target="{{ target }}">
+    <div class="d-flex gap-2">
+      {{ caller() if caller is defined else '' }}
+    </div>
+  </div>
+{% endmacro %}
+
+{# ---------- شريط تقدم ---------- #}
+{% macro progress_bar(value, tone='') %}
+  <div class="progress progress-sm">
+    <div class="progress-bar {{ 'progress-bar-' ~ tone if tone else '' }}"
+         style="width: {{ [value|float, 100]|min }}%"></div>
+  </div>
+{% endmacro %}
+
+{# ---------- بطاقة نادي (البوابة العامة) ---------- #}
+{% macro club_card(club) %}
+  <div class="card card-hover">
+    <div class="card-body">
+      <div class="d-flex align-center gap-3">
+        {% if club.logo_url %}
+          <img src="{{ club.logo_url }}" alt="{{ club.name }}" width="52" height="52"
+               style="border-radius: 12px; object-fit: cover;">
+        {% else %}
+          <span class="avatar avatar-lg" aria-hidden="true">{{ club.name|initials }}</span>
+        {% endif %}
+        <div style="min-width: 0;">
+          <div class="fw-bold text-truncate">{{ club.name }}</div>
+          <div class="text-muted text-sm">
+            {{ club.location_label if club.location_label else '—' }}
+          </div>
+        </div>
+      </div>
+
+      {% if club.description %}
+        <p class="text-muted text-sm mt-3 mb-0">{{ club.description|truncate(110) }}</p>
+      {% endif %}
+
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <span class="badge badge-info">👥 {{ club.members_count|number }} عضو</span>
+        {% if club.rating %}
+          <span class="badge badge-warning">★ {{ club.rating }}</span>
+        {% endif %}
+        {% for s in (club.sports or [])[:3] %}
+          <span class="badge badge-neutral">{{ s.icon }} {{ s.name_ar }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card-footer d-flex gap-2">
+      <a class="btn btn-primary btn-sm" href="/clubs/{{ club.slug }}">الصفحة</a>
+      {% if club.accepts_online_registration %}
+        <a class="btn btn-outline btn-sm" href="/clubs/{{ club.slug }}/register">تسجيل</a>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{# ---------- بطاقة خبر ---------- #}
+{% macro news_card(item, club=None) %}
+  <div class="card card-hover">
+    <div class="card-body">
+      <div class="d-flex gap-2 align-center mb-2 flex-wrap">
+        <span class="badge badge-primary">{{ item.kind|status_label }}</span>
+        {% if club %}<span class="text-muted text-sm">{{ club.name }}</span>{% endif %}
+        {% if item.is_pinned %}<span class="badge badge-warning">مثبّت</span>{% endif %}
+      </div>
+
+      <h3 class="card-title" style="font-size: 1.05rem;">
+        <a href="/news/{{ item.id }}" class="text-decoration-none">{{ item.title }}</a>
+      </h3>
+
+      <p class="text-muted text-sm mb-2">{{ item.excerpt|truncate(140) }}</p>
+
+      <div class="text-muted text-sm d-flex gap-3 flex-wrap">
+        <span>📅 {{ item.published_at|datetime if item.published_at else '—' }}</span>
+        <span>👁 {{ item.views_count|number }}</span>
+        {% if item.event_date %}
+          <span class="text-danger">فعالية: {{ item.event_date|date }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endmacro %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">لوحة المدرب</h1>
+    <p class="page-subtitle">{{ today()|day }} {{ today()|date }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" href="/coach/groups">أفواجي</a>
+  </div>
+</div>
+
+<div class="grid grid-3 mb-3">
+  {{ ui.stat_card('أفواجي', groups|length, '👥', 'primary') }}
+  {{ ui.stat_card('حصص اليوم', today_sessions|length, '📅', 'success') }}
+  {{ ui.stat_card('غيابات الأسبوع', absences_this_week, '⚠️',
+                  'danger' if absences_this_week > 5 else 'warning') }}
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+
+  {# ================= حصص اليوم ================= #}
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">حصص اليوم</div>
+      <div class="card-subtitle">{{ today_sessions|length }} حصة</div>
+    </div>
+    <div class="card-body card-body-flush">
+      {% if today_sessions %}
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>التوقيت</th><th>الفوج</th><th>المكان</th>
+                <th class="text-center-cell">الحضور</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in today_sessions %}
+              <tr>
+                <td dir="ltr" class="text-end-cell fw-bold">{{ s.time_label }}</td>
+                <td class="fw-bold">{{ s.group_name }}</td>
+                <td class="text-muted">{{ s.location|default('—') }}</td>
+                <td class="text-center-cell">
+                  <span class="badge badge-{{ 'success' if s.attendance_done else 'secondary' }}">
+                    {{ s.present_count }}/{{ s.expected_count }}
+                  </span>
+                </td>
+                <td class="text-end-cell">
+                  <a class="btn btn-primary btn-sm" href="/coach/sessions/{{ s.id }}">
+                    {{ 'متابعة' if s.attendance_done else 'تسجيل الحضور' }}
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('📅', 'لا توجد حصص اليوم',
+                          'استمتع بيوم هادئ، أو راجع جدول الأسبوع.') }}
+      {% endif %}
+    </div>
+  </div>
+
+  {# ================= أفوازي ================= #}
+  <aside>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">أفوامي</div>
+        <div class="card-header-actions">
+          <a class="btn btn-ghost btn-sm" href="/coach/groups">الكل ←</a>
+        </div>
+      </div>
+      <div class="card-body card-body-flush">
+        {% if groups %}
+          <table class="table table-compact mb-0">
+            <tbody>
+              {% for g in groups %}
+              <tr>
+                <td>
+                  {% if g.color %}
+                    <span class="status-dot" style="background: {{ g.color }};"></span>
+                  {% endif %}
+                  <a href="/coach/groups/{{ g.id }}">{{ g.name }}</a>
+                  <div class="text-muted text-sm" dir="ltr">{{ g.time_label }}</div>
+                </td>
+                <td class="text-end-cell">
+                  <span class="badge badge-neutral">{{ g.current_count }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="card-body">
+            <p class="text-muted text-sm mb-0">لم تُسند إليك أفواج بعد.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

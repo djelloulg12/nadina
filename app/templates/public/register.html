@@ -1,0 +1,130 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set v = form.get if form else None %}
+{% set GENDER = [('male', 'ذكر'), ('female', 'أنثى')] %}
+{% set LEVELS = [('', 'غير محدد'), ('beginner', 'مبتدئ'), ('amateur', 'هاوٍ'),
+                ('advanced', 'متقدم'), ('elite', 'نخبة')] %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="auth-back mb-3">
+    <a href="/clubs/{{ club.slug }}">← عودة لصفحة {{ club.name }}</a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">استمارة التسجيل في {{ club.name }}</div>
+      <p class="card-subtitle">
+        املأ البيانات وسيتصل بك النادي لتأكيد الموعد. التسجيل مبدئي.
+      </p>
+    </div>
+
+    <div class="card-body">
+      {% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+      {% if club.accepts_online_registration %}
+      <form method="post" action="/clubs/{{ club.slug }}/register" novalidate>
+
+        <div class="section-title">بيانات الرياضي</div>
+
+        <div class="form-group">
+          <label class="form-label" for="full_name">
+            الاسم واللقب <span class="required">*</span>
+          </label>
+          <input class="form-control" id="full_name" name="full_name" required
+                 value="{{ v('full_name', '') if v else '' }}"
+                 placeholder="مثال: بن سالم أحمد">
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            <label class="form-label" for="birth_date">تاريخ الميلاد</label>
+            <input class="form-control" id="birth_date" name="birth_date" type="date"
+                   dir="ltr" value="{{ v('birth_date', '') if v else '' }}">
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.select('gender', 'الجنس', GENDER, v('gender', '') if v else '') }}
+          </div>
+        </div>
+
+        <div class="divider-text mt-3 mb-3">بيانات ولي الأمر</div>
+
+        <div class="form-group">
+          <label class="form-label" for="parent_name">اسم ولي الأمر</label>
+          <input class="form-control" id="parent_name" name="parent_name"
+                 value="{{ v('parent_name', '') if v else '' }}">
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            <label class="form-label" for="phone">
+              رقم الهاتف <span class="required">*</span>
+            </label>
+            <input class="form-control" id="phone" name="phone" dir="ltr" required
+                   inputmode="tel" value="{{ v('phone', '') if v else '' }}"
+                   placeholder="0555123456">
+            <div class="form-hint">سنتواصل معك على هذا الرقم</div>
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            <label class="form-label" for="email">البريد الإلكتروني</label>
+            <input class="form-control" id="email" name="email" type="email" dir="ltr"
+                   value="{{ v('email', '') if v else '' }}">
+          </div>
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            <label class="form-label" for="wilaya">الولاية</label>
+            <input class="form-control" id="wilaya" name="wilaya"
+                   value="{{ v('wilaya', '') if v else '' }}">
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            <label class="form-label" for="address">العنوان</label>
+            <input class="form-control" id="address" name="address"
+                   value="{{ v('address', '') if v else '' }}">
+          </div>
+        </div>
+
+        <div class="divider-text mt-3 mb-3">التفضيلات</div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          {% if sports %}
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.select('sport_id', 'الرياضة المفضلة',
+                         options(sports, 'id', 'name_ar'),
+                         v('sport_id', '') if v else '', placeholder='اختر الرياضة') }}
+          </div>
+          {% endif %}
+
+          {% if groups %}
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.select('preferred_group_id', 'الفوج المفضّل',
+                         options(groups, 'id', 'name'),
+                         v('preferred_group_id', '') if v else '',
+                         placeholder='اختر الفوج (اختياري)') }}
+          </div>
+          {% endif %}
+
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.select('level', 'المستوى الحالي', LEVELS, v('level', '') if v else '') }}
+          </div>
+        </div>
+
+        {{ ui.textarea('message', 'رسالتك للنادي', v('message', '') if v else '',
+                       rows=4, placeholder='ملاحظات، أهداف، أو أي سؤال…') }}
+
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-primary btn-lg" type="submit">إرسال الطلب</button>
+          <a class="btn btn-ghost" href="/clubs/{{ club.slug }}">إلغاء</a>
+        </div>
+      </form>
+
+      {% else %}
+        {{ ui.alert('هذا النادي مغلق حالياً أمام طلبات التسجيل عبر الموقع. '
+                    'يرجى الاتصال بالنادي مباشرة.', 'warning', 'التسجيل مغلق') }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

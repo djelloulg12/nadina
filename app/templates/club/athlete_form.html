@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% set editing = athlete is not none and athlete %}
+{% set g = form.get if form else None %}
+{% set GENDER = [('', 'غير محدد'), ('male', 'ذكر'), ('female', 'أنثى')] %}
+{% set LEVELS = [('beginner', 'مبتدئ'), ('amateur', 'هاوٍ'),
+                ('advanced', 'متقدم'), ('elite', 'نخبة')] %}
+{% set BLOOD = [('A+','A+'),('A-','A-'),('B+','B+'),('B-','B-'),
+                ('O+','O+'),('O-','O-'),('AB+','AB+'),('AB-','AB-')] %}
+
+{# قيمة حقل: أولوية النموذج المُعاد (عند الخطأ) ثم الكيان الحالي #}
+{% macro val(name, fallback='') %}
+  {%- if g -%}{{ g(name, fallback) }}{%- elif editing -%}{{ fallback }}{%- endif -%}
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">{{ 'تعديل رياضي' if editing else 'إضافة رياضي' }}</h1>
+    <p class="page-subtitle">
+      {% if editing %}{{ athlete.full_name }} — {{ athlete.card_code }}
+      {% else %}املأ البيانات الأساسية ثم أضف الرياضي للأفواج{% endif %}
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm"
+       href="{{ '/club/athletes/' ~ athlete.id if editing else '/club/athletes' }}">← رجوع</a>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+<form method="post"
+      action="{{ ('/club/athletes/' ~ athlete.id ~ '/edit') if editing else '/club/athletes' }}"
+      novalidate>
+<div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+
+  {# ================= العمود الرئيسي ================= #}
+  <div>
+
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">البيانات الشخصية</div></div>
+      <div class="card-body">
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('first_name', 'الاسم الأول', val('first_name', athlete.first_name if editing else ''), required=True) }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('last_name', 'اسم العائلة', val('last_name', athlete.last_name if editing else ''), required=True) }}
+          </div>
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('birth_date', 'تاريخ الميلاد',
+                        val('birth_date', athlete.birth_date|date if editing and athlete.birth_date else ''),
+                        type='date') }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.select('gender', 'الجنس', GENDER,
+                         val('gender', athlete.gender if editing else '')) }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.select('blood_type', 'فصيلة الدم', BLOOD,
+                         val('blood_type', athlete.blood_type if editing else ''),
+                         placeholder='غير محدد') }}
+          </div>
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('phone', 'هاتف الرياضي', val('phone', athlete.phone if editing else ''), type='tel') }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('email', 'البريد الإلكتروني', val('email', athlete.email if editing else ''), type='email') }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('national_id', 'رقم الهوية', val('national_id', athlete.national_id if editing else '')) }}
+          </div>
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('wilaya', 'الولاية', val('wilaya', athlete.wilaya if editing else '')) }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('nationality', 'الجنسية', val('nationality', athlete.nationality if editing else '')) }}
+          </div>
+        </div>
+
+        {{ ui.field('address', 'العنوان', val('address', athlete.address if editing else '')) }}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">ولي الأمر</div></div>
+      <div class="card-body">
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('guardian_name', 'اسم ولي الأمر',
+                        val('guardian_name', athlete.guardian_name if editing else '')) }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('guardian_phone', 'هاتف ولي الأمر',
+                        val('guardian_phone', athlete.guardian_phone if editing else ''), type='tel',
+                        hint='يُنشأ حساب ولي الأمر تلقائياً بهذا الرقم') }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('guardian_email', 'بريد ولي الأمر',
+                        val('guardian_email', athlete.guardian_email if editing else ''), type='email') }}
+          </div>
+        </div>
+
+        <div class="form-row d-flex gap-3 flex-wrap">
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('emergency_contact_name', 'اتصال الطوارئ',
+                        val('emergency_contact_name', athlete.emergency_contact_name if editing else '')) }}
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            {{ ui.field('emergency_contact_phone', 'هاتف الطوارئ',
+                        val('emergency_contact_phone', athlete.emergency_contact_phone if editing else ''), type='tel') }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">البيانات الطبية</div>
+        <div class="card-subtitle">تظهر للطاقم الطبي فقط، وتُحفظ في ملف الرياضي.</div>
+      </div>
+      <div class="card-body">
+        <div class="form-check mb-3">
+          <input type="checkbox" id="has_medical_clearance" name="has_medical_clearance" value="1"
+                 {{ 'checked' if (g and g('has_medical_clearance')) or (editing and athlete.has_medical_clearance) }}>
+          <label for="has_medical_clearance">لديه شهادة لياقة طبية</label>
+        </div>
+
+        {{ ui.textarea('allergies', 'الحساسية', val('allergies', athlete.allergies if editing else ''), rows=2) }}
+        {{ ui.textarea('chronic_conditions', 'الأمراض المزمنة',
+                       val('chronic_conditions', athlete.chronic_conditions if editing else ''), rows=2) }}
+        {{ ui.textarea('medical_notes', 'ملاحظات طبية',
+                       val('medical_notes', athlete.medical_notes if editing else ''), rows=2) }}
+      </div>
+    </div>
+  </div>
+
+  {# ================= العمود الجانبي ================= #}
+  <aside>
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">الأفواج</div></div>
+      <div class="card-body">
+        {% if groups %}
+          {% for grp in groups %}
+            <label class="form-check">
+              <input type="checkbox" name="group_ids" value="{{ grp.id }}"
+                {{ 'checked' if (g and grp.id|string in g.getlist('group_ids'))
+                             or (athlete_groups|default([]) and grp in athlete_groups) }}>
+              <span>{{ grp.name }}
+                <span class="text-muted text-sm">({{ grp.current_count }}/{{ grp.capacity }})</span>
+              </span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted text-sm mb-0">لا توجد أفواج بعد.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">الرياضي</div></div>
+      <div class="card-body">
+        {% if sports %}
+          {{ ui.select('sport_id', 'الرياضة',
+                       options(sports, 'id', 'name_ar'),
+                       val('sport_id', athlete.sport_id if editing else ''),
+                       placeholder='اختر الرياضة') }}
+        {% endif %}
+        {{ ui.select('level', 'المستوى', LEVELS, val('level', athlete.level if editing else 'beginner')) }}
+        {{ ui.field('preferred_position', 'المركز المفضّل',
+                    val('preferred_position', athlete.preferred_position if editing else '')) }}
+        {{ ui.field('jersey_number', 'رقم القميص',
+                    val('jersey_number', athlete.jersey_number if editing else ''), type='number') }}
+        {% if editing %}
+          {{ ui.select('status', 'الحالة',
+                       [('active','نشط'),('inactive','غير نشط'),('suspended','موقوف')],
+                       athlete.status) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {% if editing %}
+    <div class="card mb-3">
+      <div class="card-header"><div class="card-title">البطاقة</div></div>
+      <div class="card-body text-center">
+        <div class="fw-bold" dir="ltr" style="font-size: 1.3rem;">{{ athlete.card_code }}</div>
+        <div class="text-muted text-sm mb-2">كود تسجيل الحضور</div>
+        <div class="d-grid gap-2">
+          <a class="btn btn-outline btn-sm" target="_blank"
+             href="/club/athletes/{{ athlete.id }}/card">🖨️ معاينة البطاقة</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {{ ui.textarea('notes', 'ملاحظات إدارية', val('notes', athlete.notes if editing else ''), rows=3) }}
+
+    <div class="d-grid gap-2 mt-3">
+      <button class="btn btn-primary btn-lg" type="submit">
+        {{ 'حفظ التعديلات' if editing else 'إضافة الرياضي' }}
+      </button>
+      <a class="btn btn-ghost" href="{{ '/club/athletes/' ~ athlete.id if editing else '/club/athletes' }}">
+        إلغاء
+      </a>
+    </div>
+  </aside>
+</div>
+</form>
+
+{# ================= حذف ================= #}
+{% if editing and user_can(current_user, 'athletes.delete') %}
+<div class="card mt-3" style="border-color: var(--danger);">
+  <div class="card-header"><div class="card-title text-danger">منطقة الخطر</div></div>
+  <div class="card-body">
+    <p class="text-muted text-sm">
+      الحذف الافتراضي هو <strong>تعطيل</strong> (يبقي السجلات المالية).
+      الحذف النهائي لا يُسمح به إن كان على الرياضي فواتير غير مسددة.
+    </p>
+    <form method="post" action="/club/athletes/{{ athlete.id }}/delete"
+          data-confirm data-confirm-title="حذف الرياضي"
+          data-confirm-text="سيتم تعطيل {{ athlete.full_name }}. هل أنت متأكد؟">
+      <button class="btn btn-danger btn-outline" type="submit">حذف / تعطيل الرياضي</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

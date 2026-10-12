@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">ورقة حضور الحصة</h1>
+    <p class="page-subtitle">
+      {{ session.group.name if session.group else 'حصة عامة' }}
+      — {{ session.session_date|date }} ({{ session.session_date|day }})
+      <span dir="ltr">{{ session.time_label }}</span>
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/club/sessions">← الحصص</a>
+    <a class="btn btn-outline btn-sm" href="/club/sessions/{{ session.id }}/roster">
+      📄 كشف الحضور
+    </a>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+<div class="grid grid-4 mb-3">
+  {{ ui.stat_card('المتوقَّع', session.expected_count, '👥', 'primary') }}
+  {{ ui.stat_card('الحاضرون', session.present_count, '✅', 'success') }}
+  {{ ui.stat_card('الغائبون', session.absent_count, '❌', 'danger') }}
+  {{ ui.stat_card('نسبة الحضور', session.attendance_rate|percent, '📊', 'info',
+                  recorded_count|string ~ ' سجل' if recorded_count is defined else '') }}
+</div>
+
+{% if roster %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">قائمة الحضور</div>
+    <div class="card-subtitle">
+      حدّد حالة كل رياضي — الغياب يُسجَّل فوراً ويصل إشعار لولي أمره.
+    </div>
+  </div>
+
+  <div class="card-body">
+    {# ================= الأدوات السريعة ================= #}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <form method="post" action="/club/sessions/{{ session.id }}/mark-absent"
+            data-confirm data-confirm-title="تحديد الغائبين"
+            data-confirm-text="سيُسجَّل كل من لم تُحدَّد حالته كـ «غائب»، وسيصل إشعار لأوليائه.">
+        <button class="btn btn-warning" type="submit">
+          🚫 تحديد المتبقين كغياب
+        </button>
+      </form>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="table" id="roster-table">
+        <thead>
+          <tr>
+            <th>الرياضي</th>
+            <th>كود البطاقة</th>
+            <th class="text-center-cell">الحالة</th>
+            <th class="text-end-cell">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in roster %}
+          <tr>
+            <td>
+              <div class="d-flex align-center gap-2">
+                {{ ui.avatar(row.athlete, 'avatar-sm') }}
+                <a href="/club/athletes/{{ row.athlete.id }}"
+                   class="fw-bold text-decoration-none">{{ row.athlete.full_name }}</a>
+              </div>
+            </td>
+            <td dir="ltr" class="text-end-cell text-muted">{{ row.athlete.card_code }}</td>
+            <td class="text-center-cell">
+              {% if row.status %}{{ ui.badge(row.status) }}{% else %}
+                <span class="badge badge-neutral">لم يُسجَّل</span>
+              {% endif %}
+            </td>
+            <td class="text-end-cell">
+              <div class="table-actions d-flex gap-1 justify-end">
+                {% for value, label, cls in [
+                      ('present','حاضر','success'), ('late','متأخر','warning'),
+                      ('absent','غائب','danger'), ('excused','بعذر','info')] %}
+                  <form method="post" action="/club/sessions/{{ session.id }}/attendance" class="m-0">
+                    <input type="hidden" name="athlete_id" value="{{ row.athlete.id }}">
+                    <input type="hidden" name="status" value="{{ value }}">
+                    <button class="btn btn-sm btn-outline btn-{{ cls }}"
+                            title="{{ label }}" type="submit">{{ label }}</button>
+                  </form>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+  <div class="card">
+    <div class="card-body">
+      {{ ui.empty_state('👥', 'لا يوجد رياضيون في هذه الحصة',
+                        'اربط الحصة بفوج أولاً، أو أضف رياضيين إلى الفوج.') }}
+    </div>
+  </div>
+{% endif %}
+
+{# ================= نموذج تسجيل سريع ================= #}
+<div class="card mt-3">
+  <div class="card-header">
+    <div class="card-title">تسجيل سريع بكود البطاقة</div>
+    <div class="card-subtitle">
+      امسح رمز QR بكاميرا الهاتف، أو أدخل الكود يدوياً.
+    </div>
+  </div>
+  <div class="card-body">
+    <form class="d-flex gap-2" onsubmit="MashiaApp.Attendance.manualSubmit(event, {{ session.id }})">
+      <input class="form-control" id="quick-card" placeholder="ABC-1234"
+             dir="ltr" autocomplete="off" required>
+      <button class="btn btn-primary" type="submit">تسجيل</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // نُخفي القالب فقط في حال غياب وحدة الحضور (متصفح قديم)
+  if (window.MashiaApp && !MashiaApp.Attendance) {
+    document.querySelectorAll('[onclick*="MashiaApp"]').forEach(function (el) {
+      el.style.display = 'none';
+    });
+  }
+</script>
+{% endblock %}

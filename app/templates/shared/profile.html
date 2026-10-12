@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الملف الشخصي</h1>
+    <p class="page-subtitle">بياناتك الشخصية وكلمة المرور</p>
+  </div>
+</div>
+
+{% if error %}{{ ui.alert(error, 'danger') }}{% endif %}
+
+<div class="grid grid-2">
+
+  {# ================= البطاقة التعريفية ================= #}
+  <div class="card">
+    <div class="card-body text-center">
+      {% if profile_user.avatar_url %}
+        <span class="avatar avatar-xl"><img src="{{ profile_user.avatar_url }}" alt=""></span>
+      {% else %}
+        <span class="avatar avatar-xl" aria-hidden="true">{{ profile_user.full_name|initials }}</span>
+      {% endif %}
+
+      <h2 class="card-title mt-3">{{ profile_user.full_name }}</h2>
+      <div class="text-muted">{{ role_label(profile_user.role) }}</div>
+
+      {% if current_club %}
+        <div class="badge badge-primary mt-2">{{ current_club.name }}</div>
+      {% endif %}
+
+      <table class="table table-compact table-borderless mt-3 mb-0 text-start">
+        <tbody>
+          <tr>
+            <td class="text-muted">البريد</td>
+            <td dir="ltr" class="text-end-cell">{{ profile_user.email|default('—') }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">الهاتف</td>
+            <td dir="ltr" class="text-end-cell">{{ profile_user.phone|default('—') }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">آخر دخول</td>
+            <td class="text-end-cell">{{ profile_user.last_login_at|relative if profile_user.last_login_at else '—' }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">تاريخ الإنشاء</td>
+            <td class="text-end-cell">{{ profile_user.created_at|date }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ================= النماذج ================= #}
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">تعديل البيانات</div>
+      </div>
+      <div class="card-body">
+        <form method="post" action="/profile">
+          {{ ui.field('full_name', 'الاسم الكامل', profile_user.full_name, required=True) }}
+          {{ ui.field('email', 'البريد الإلكتروني', profile_user.email, type='email') }}
+          {{ ui.field('phone', 'رقم الهاتف', profile_user.phone, type='tel') }}
+          <button class="btn btn-primary" type="submit">حفظ التعديلات</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <div class="card-title">تغيير كلمة المرور</div>
+        <div class="card-subtitle">
+          8 أحرف على الأقل، مع حرف كبير وحرف صغير ورقم.
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post" action="/profile">
+          <input type="hidden" name="full_name" value="{{ profile_user.full_name }}">
+          <input type="hidden" name="email" value="{{ profile_user.email or '' }}">
+          <input type="hidden" name="phone" value="{{ profile_user.phone or '' }}">
+
+          {{ ui.field('current_password', 'كلمة المرور الحالية', '', type='password', required=True) }}
+          {{ ui.field('new_password', 'كلمة المرور الجديدة', '', type='password', required=True) }}
+          {{ ui.field('confirm_password', 'تأكيد كلمة المرور الجديدة', '', type='password', required=True) }}
+
+          <button class="btn btn-primary" type="submit">تحديث كلمة المرور</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><div class="card-title">صلاحياتك</div></div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-1">
+          {% for perm in role_permissions(profile_user.role) %}
+            <span class="badge badge-neutral" dir="ltr">{{ perm }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

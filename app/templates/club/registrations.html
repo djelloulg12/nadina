@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">طلبات التسجيل</h1>
+    <p class="page-subtitle">{{ total|number }} طلب</p>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="tabs">
+      {% for value, label in [('', 'الكل'), ('pending', 'قيد المراجعة'),
+                              ('approved', 'مقبولة'), ('rejected', 'مرفوضة')] %}
+        <a class="tab {{ 'active' if filters.status == value }}"
+           href="{{ query_string(request, status=value or None) }}">
+          {{ label }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body card-body-flush">
+    {% if requests %}
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>المتقدّم</th><th>الهاتف</th><th>المستوى</th>
+              <th class="text-center-cell">العمر</th>
+              <th>تاريخ الطلب</th><th class="text-center-cell">الحالة</th>
+              <th class="text-end-cell">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in requests %}
+            <tr>
+              <td>
+                <div class="fw-bold">{{ r.full_name }}</div>
+                {% if r.parent_name %}
+                  <div class="text-muted text-sm">ولي الأمر: {{ r.parent_name }}</div>
+                {% endif %}
+                {% if r.message %}
+                  <div class="text-muted text-sm">{{ r.message|truncate(70) }}</div>
+                {% endif %}
+              </td>
+              <td dir="ltr" class="text-end-cell">{{ r.phone }}</td>
+              <td>{{ r.level|status_label if r.level else '—' }}</td>
+              <td class="text-center-cell">{{ r.birth_date|date if r.birth_date else '—' }}</td>
+              <td>
+                <div class="text-sm">{{ r.submitted_at|relative }}</div>
+                {% if r.waiting_days > 3 %}
+                  <div class="text-danger text-sm">انتظار {{ r.waiting_days }} يوم</div>
+                {% endif %}
+              </td>
+              <td class="text-center-cell">{{ ui.badge(r.status) }}</td>
+              <td class="text-end-cell">
+                {% if r.status == 'pending' %}
+                  <div class="table-actions d-flex gap-1 justify-end">
+                    <form method="post" action="/club/registrations/{{ r.id }}/approve" class="m-0">
+                      <button class="btn btn-sm btn-outline btn-success" type="submit"
+                              data-confirm data-confirm-title="قبول الطلب"
+                              data-confirm-text="سيتم إنشاء ملف رياضي لـ {{ r.full_name }} تلقائياً.">
+                        ✓ قبول
+                      </button>
+                    </form>
+
+                    <button class="btn btn-sm btn-outline btn-danger" type="button"
+                            data-modal-open="reject-{{ r.id }}">✕ رفض</button>
+                  </div>
+
+                  <div class="modal" id="reject-{{ r.id }}" role="dialog" aria-modal="true">
+                    <div class="modal-backdrop" data-modal-close></div>
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h3 class="modal-title">رفض طلب {{ r.full_name }}</h3>
+                          <button class="modal-close" type="button" data-modal-close>×</button>
+                        </div>
+                        <form method="post" action="/club/registrations/{{ r.id }}/reject">
+                          <div class="modal-body">
+                            <div class="form-group">
+                              <label class="form-label" for="reason-{{ r.id }}">سبب الرفض</label>
+                              <input class="form-control" id="reason-{{ r.id }}" name="reason"
+                                     placeholder="مثال: العدد مكتمل في هذه الفئة">
+                              <div class="form-hint">يُسجَّل السبب للمراجعة.</div>
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button class="btn btn-ghost" type="button" data-modal-close>إلغاء</button>
+                            <button class="btn btn-danger" type="submit">تأكيد الرفض</button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-muted text-sm">
+                    {{ 'قُبل في ' ~ r.processed_at|relative if r.processed_at and r.status == 'approved' else '—' }}
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.empty_state('📝', 'لا توجد طلبات',
+                        'الطلبات المرسلة من البوابة العامة تظهر هنا للمراجعة.',
+                        '/club/registrations?status=', 'عرض الكل') }}
+    {% endif %}
+  </div>
+
+  {% if total and per_page %}
+  <div class="table-footer">{{ ui.pagination(page, total, per_page, '/club/registrations') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

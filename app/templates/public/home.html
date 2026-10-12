@@ -1,0 +1,104 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+
+{# ================= البطل ================= #}
+<section class="section" style="background: linear-gradient(135deg, var(--primary-50), var(--surface));">
+  <div class="container">
+    <div class="text-center" style="max-width: 760px; margin-inline: auto;">
+      <span class="badge badge-primary">منصة متعددة الأندية</span>
+      <h1 style="font-size: clamp(1.7rem, 4vw, 2.6rem); margin: .8rem 0 .5rem;">
+        كل ما يحتاجه ناديك في مكان واحد
+      </h1>
+      <p class="text-muted" style="font-size: 1.05rem;">
+        رياضيون، أفواج، حصص، حضور بالـ QR، تقييمات فنية، وتسيير مالي —
+        مع لوحة تحكم كاملة للمدير، ومساحة مبسّطة للمدرب والأولياء.
+      </p>
+
+      <form method="get" action="/clubs" class="mt-4">
+        <div class="input-group">
+          <input class="form-control" type="search" name="search"
+                 placeholder="ابحث عن نادي، مدينة، أو رياضة…"
+                 aria-label="ابحث في دليل الأندية">
+          <button class="btn btn-primary" type="submit">بحث</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+{# ================= الرياضات ================= #}
+{% if sports %}
+<section class="section">
+  <div class="container">
+    <div class="section-title">تصفّح حسب الرياضة</div>
+    <div class="grid grid-auto-sm">
+      {% for s in sports %}
+        <a class="card card-hover" href="/clubs?sport_id={{ s.id }}" style="text-decoration: none;">
+          <div class="card-body text-center">
+            <div style="font-size: 2rem;">{{ s.icon }}</div>
+            <div class="fw-bold mt-1">{{ s.name }}</div>
+            <div class="text-muted text-sm">{{ s.count }} نادٍ</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ================= الأندية ================= #}
+<section class="section">
+  <div class="container">
+    <div class="d-flex justify-between align-center flex-wrap gap-2 mb-3">
+      <div class="section-title mb-0">أندية مسجّلة</div>
+      <a class="btn btn-outline btn-sm" href="/clubs">عرض الدليل كاملاً ←</a>
+    </div>
+
+    {% if clubs %}
+      <div class="grid grid-3">
+        {% for club in clubs %}{{ ui.club_card(club) }}{% endfor %}
+      </div>
+    {% else %}
+      {{ ui.empty_state('🏟️', 'لا توجد أندية بعد',
+                        'لم يسجّل أي نادي حتى الآن. كن أول من ينضم.',
+                        '/auth/register', 'افتح حساب نادي') }}
+    {% endif %}
+  </div>
+</section>
+
+{# ================= الأخبار ================= #}
+{% if news %}
+<section class="section">
+  <div class="container">
+    <div class="d-flex justify-between align-center flex-wrap gap-2 mb-3">
+      <div class="section-title mb-0">آخر الأخبار</div>
+      <a class="btn btn-outline btn-sm" href="/news">كل الأخبار ←</a>
+    </div>
+
+    <div class="grid grid-3">
+      {% for item in news %}{{ ui.news_card(item) }}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ================= دعوة للفتح ================= #}
+<section class="section">
+  <div class="container">
+    <div class="card">
+      <div class="card-body d-flex flex-wrap justify-between align-center gap-3">
+        <div>
+          <h2 class="card-title">تدير نادياً رياضياً؟</h2>
+          <p class="text-muted mb-0">
+            افتح حساب نادي مجاناً، وأضف رياضييك وأفواجك، وابدأ بتسجيل
+            الحضور والتقييمات المالية من اليوم الأول.
+          </p>
+        </div>
+        <a class="btn btn-primary btn-lg" href="/auth/register">افتح حساب نادي</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">أبنائي</h1>
+    <p class="page-subtitle">
+      {{ summary.total_children|default(0) }} ابن — في كل الأندية
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" href="/parent/finance">💳 الوضع المالي</a>
+  </div>
+</div>
+
+{# ================= تنبيه الاستحقاق ================= #}
+{% if next_payment %}
+<div class="card mb-3" style="border-color: var(--warning);">
+  <div class="card-body d-flex flex-wrap justify-between align-center gap-3">
+    <div>
+      <div class="fw-bold">
+        💳 اشتراك {{ next_payment.athlete_name }} يستحق {{ next_payment.due_date|date }}
+      </div>
+      <div class="text-muted text-sm">
+        المبلغ المتبقي: {{ next_payment.amount_due|money }} — راجع صفحة الوضع المالي.
+      </div>
+    </div>
+    <a class="btn btn-warning btn-sm" href="/parent/finance">عرض التفاصيل</a>
+  </div>
+</div>
+{% endif %}
+
+{# ================= بطاقة الأبناء ================= #}
+{% if children %}
+  <div class="grid grid-3">
+    {% for row in children %}
+    <div class="card card-hover">
+      <div class="card-header"
+          {% if row.club_slug %}
+          style="border-inline-start: 4px solid {{ row.club_color or '#0f766e' }};"
+          {% endif %}>
+        <div class="d-flex align-center gap-3">
+          {{ ui.avatar(row.athlete, 'avatar-lg') }}
+          <div style="min-width: 0;">
+            <div class="card-title">{{ row.athlete.full_name }}</div>
+            <div class="card-subtitle">{{ row.club_name }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="grid grid-2 mb-3">
+          <div class="text-center">
+            <div class="text-muted text-sm">العمر</div>
+            <div class="fw-bold">{{ row.age|default('—') }}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-muted text-sm">الفئة</div>
+            <div class="fw-bold">{{ row.athlete.age_group }}</div>
+          </div>
+        </div>
+
+        {% if row.groups %}
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            {% for g in row.groups %}
+              <span class="badge badge-primary">{{ g.name }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mb-2">
+          <div class="d-flex justify-between text-sm mb-1">
+            <span class="text-muted">الحضور (30 يوم)</span>
+            <span class="fw-bold">
+              {{ row.attendance.rate|percent if row.attendance.rate is not none else '—' }}
+            </span>
+          </div>
+          {% if row.attendance.rate is not none %}
+            {{ ui.progress_bar(row.attendance.rate,
+               'success' if row.attendance.rate >= 75 else
+               ('warning' if row.attendance.rate >= 50 else 'danger')) }}
+          {% else %}
+            <div class="text-muted text-sm">لا توجد بيانات حضور بعد.</div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex justify-between text-sm mt-2">
+          <span class="text-muted">المستحق</span>
+          <span class="fw-bold {{ 'text-danger' if row.debt > 0 }}">
+            {{ row.debt|money if row.debt > 0 else 'لا مديونية' }}
+          </span>
+        </div>
+
+        {% if row.latest_evaluation %}
+          <div class="d-flex justify-between text-sm mt-1">
+            <span class="text-muted">آخر تقييم</span>
+            <span class="fw-bold">
+              {{ row.latest_evaluation }}/10
+              <span class="text-muted text-sm">({{ row.latest_evaluation_date|date }})</span>
+            </span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="card-footer d-flex gap-2">
+        <a class="btn btn-primary btn-sm" href="/parent/children/{{ row.athlete.id }}">
+          الملف الكامل
+        </a>
+        {% if row.athlete.card_code %}
+          <span class="badge badge-neutral" dir="ltr">{{ row.athlete.card_code }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card"><div class="card-body">
+    {{ ui.empty_state('👨‍👩‍👧', 'لا يوجد أبناء مرتبطون بحسابك',
+                      'اربط حسابك برقم هاتف ولي الأمر لدى النادي، أو اطلب من النادي إضافة الربط.') }}
+  </div></div>
+{% endif %}
+{% endblock %}

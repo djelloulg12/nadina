@@ -1,0 +1,20 @@
+{% extends "base_public.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="container container-narrow">
+  <div class="section">
+    <div class="empty-state empty-state-icon-lg">
+      <div class="empty-state-icon" aria-hidden="true">⚠️</div>
+      <div class="empty-state-title">تعذّر إتمام العملية</div>
+      <div class="empty-state-text">
+        {{ message|default('يوجد خطأ يمنع تنفيذ هذا الإجراء.') }}
+      </div>
+      <div class="empty-state-actions">
+        <a class="btn btn-primary" href="javascript:history.back()">رجوع</a>
+        <a class="btn btn-outline" href="/">الرئيسية</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

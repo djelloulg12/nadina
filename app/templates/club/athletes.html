@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الرياضيون</h1>
+    <p class="page-subtitle">{{ total|number }} رياضي مسجّل</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-outline btn-sm" href="/club/export/athletes">📤 تصدير</a>
+    <a class="btn btn-primary btn-sm" href="/club/athletes/new">+ رياضي جديد</a>
+  </div>
+</div>
+
+{# ================= الفلاتر ================= #}
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" action="/club/athletes" data-auto-submit
+          class="d-flex flex-wrap gap-3 align-end">
+
+      <div class="form-group" style="flex: 2 1 220px; margin: 0;">
+        <label class="form-label" for="search">بحث</label>
+        <input class="form-control" id="search" name="search" type="search"
+               value="{{ filters.search|default('') }}"
+               placeholder="الاسم، كود البطاقة، الهاتف…">
+      </div>
+
+      <div class="form-group" style="flex: 1 1 170px; margin: 0;">
+        <label class="form-label" for="group_id">الفوج</label>
+        <select class="form-select" id="group_id" name="group_id">
+          <option value="">كل الأفواج</option>
+          {% for g in groups %}
+            <option value="{{ g.id }}"
+              {{ 'selected' if filters.group_id and filters.group_id|string == g.id|string }}>
+              {{ g.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="flex: 1 1 150px; margin: 0;">
+        <label class="form-label" for="status">الحالة</label>
+        <select class="form-select" id="status" name="status">
+          <option value="">الكل</option>
+          <option value="active"   {{ 'selected' if filters.status == 'active' }}>نشط</option>
+          <option value="inactive" {{ 'selected' if filters.status == 'inactive' }}>غير نشط</option>
+          <option value="suspended"{{ 'selected' if filters.status == 'suspended' }}>موقوف</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="flex: 0 0 auto; margin: 0;">
+        <label class="form-check">
+          <input type="checkbox" name="has_debt" value="1"
+                 {{ 'checked' if filters.has_debt == '1' }}>
+          <span>عليهم ديون فقط</span>
+        </label>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit">تطبيق</button>
+        <a class="btn btn-ghost" href="/club/athletes">إعادة تعيين</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ================= الجدول ================= #}
+<div class="card">
+  <div class="card-body card-body-flush">
+    {% if athletes %}
+      <div class="table-wrapper">
+        <table class="table" id="athletes-table">
+          <thead>
+            <tr>
+              <th data-sort="text">الرياضي</th>
+              <th data-sort="text">كود البطاقة</th>
+              <th data-sort="text">الفئة</th>
+              <th>الفوج</th>
+              <th>الحضور</th>
+              <th>هاتف الولي</th>
+              <th>الحالة</th>
+              <th class="text-end-cell">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in athletes %}
+            <tr>
+              <td>
+                <div class="d-flex align-center gap-2">
+                  {{ ui.avatar(a, 'avatar-sm') }}
+                  <div style="min-width:0;">
+                    <a class="fw-bold text-decoration-none" href="/club/athletes/{{ a.id }}">
+                      {{ a.full_name }}
+                    </a>
+                    {% if a.birth_date %}
+                      <div class="text-muted text-sm">{{ a.age }} سنة</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td dir="ltr" class="text-end-cell">{{ a.card_code }}</td>
+              <td>{{ a.age_group }}</td>
+              <td>
+                {% for g in a.groups if g.is_active %}
+                  <span class="badge badge-neutral">{{ g.group.name if g.group else '' }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endfor %}
+              </td>
+              <td>
+                {% if a.attendance_rate is defined and a.attendance_rate %}
+                  <div class="d-flex align-center gap-2">
+                    {{ ui.progress_bar(a.attendance_rate,
+                       'success' if a.attendance_rate >= 75 else 'warning') }}
+                    <span class="text-sm">{{ a.attendance_rate|percent(0) }}</span>
+                  </div>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td dir="ltr" class="text-end-cell">{{ a.guardian_phone|default('—') }}</td>
+              <td>{{ ui.badge(a.status) }}</td>
+              <td class="text-end-cell">
+                <div class="table-actions d-flex gap-1 justify-end">
+                  <a class="btn btn-icon btn-ghost btn-sm" title="الملف"
+                     href="/club/athletes/{{ a.id }}">👁</a>
+                  <a class="btn btn-icon btn-ghost btn-sm" title="تعديل"
+                     href="/club/athletes/{{ a.id }}/edit">✎</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.empty_state('🏃', 'لا توجد نتائج',
+                        'جرّب تغيير الفلاتر، أو أضف رياضياً جديداً.',
+                        '/club/athletes/new', 'إضافة رياضي') }}
+    {% endif %}
+  </div>
+
+  {% if total and per_page %}
+  <div class="table-footer">
+    {{ ui.pagination(page, total, per_page, '/club/athletes') }}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

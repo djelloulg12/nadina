@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-labelledby="iconTitle iconDesc">
+  <title id="iconTitle">المنصة الشاملة لإدارة الأندية الرياضية</title>
+  <desc id="iconDesc">شعار المنصة: درع بلون أخضر مزرقّ تتوسّطه كرة رياضية</desc>
+
+  <defs>
+    <!-- التدرّج الأساسي (كحلي مخضر) -->
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#14b8a6"/>
+      <stop offset="55%"  stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#115e59"/>
+    </linearGradient>
+
+    <!-- تدرّج الكرة -->
+    <radialGradient id="ballGradient" cx="35%" cy="28%" r="78%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="70%"  stop-color="#e6fffb"/>
+      <stop offset="100%" stop-color="#ccfbf1"/>
+    </radialGradient>
+
+    <!-- لمعة خفيفة فوق الدرع -->
+    <linearGradient id="glossGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="60%"  stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- ظلّ ناعم -->
+    <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#042f2e" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- الدرع -->
+  <path fill="url(#shieldGradient)" filter="url(#softShadow)" d="
+    M256 32
+    C 200 32 148 52 112 76
+    C 112 76 92 226 108 316
+    C 120 386 178 436 256 476
+    C 334 436 392 386 404 316
+    C 420 226 400 76 400 76
+    C 364 52 312 32 256 32
+    Z"/>
+
+  <!-- الحدّ الداخلي -->
+  <path fill="none" stroke="#ffffff" stroke-opacity="0.42" stroke-width="7" d="
+    M256 62
+    C 208 62 162 79 131 100
+    C 131 100 114 229 128 307
+    C 138 368 188 412 256 447
+    C 324 412 374 368 384 307
+    C 398 229 381 100 381 100
+    C 350 79 304 62 256 62
+    Z"/>
+
+  <!-- لمعة -->
+  <path fill="url(#glossGradient)" d="
+    M256 62
+    C 208 62 162 79 131 100
+    C 131 100 118 190 124 260
+    C 170 214 212 196 256 196
+    C 300 196 342 214 388 260
+    C 394 190 381 100 381 100
+    C 350 79 304 62 256 62
+    Z"/>
+
+  <!-- الكرة -->
+  <g transform="translate(256 258)">
+    <circle r="104" fill="url(#ballGradient)"/>
+    <circle r="104" fill="none" stroke="#0f766e" stroke-opacity="0.22" stroke-width="4"/>
+
+    <!-- خطوط الكرة -->
+    <g fill="none" stroke="#0f766e" stroke-opacity="0.75" stroke-width="8" stroke-linecap="round">
+      <!-- خط أفقي علوي -->
+      <path d="M-52 -92 A104 104 0 0 1 52 -92"/>
+      <!-- خط أفقي سفلي -->
+      <path d="M-78 70 A104 104 0 0 0 78 70"/>
+      <!-- خطوط جانبية منحنية -->
+      <path d="M-96 -34 C -52 -10 -52 10 -96 34"/>
+      <path d="M96 -34 C 52 -10 52 10 96 34"/>
+      <!-- خط طولي -->
+      <path d="M0 -104 L0 104"/>
+    </g>
+
+    <!-- الخماسي المركزي -->
+    <path fill="#0f766e" fill-opacity="0.9" d="
+      M0 -40
+      L38 -12
+      L24 34
+      L-24 34
+      L-38 -12
+      Z"/>
+
+    <!-- تفاصيل بيضاء داخل الخماسي -->
+    <path fill="#e6fffb" fill-opacity="0.95" d="
+      M0 -22
+      L19 -6
+      L12 17
+      L-12 17
+      L-19 -6
+      Z"/>
+  </g>
+
+  <!-- شريط سفلي زخرفي -->
+  <path fill="#ccfbf1" fill-opacity="0.85" d="
+    M186 402 Q256 432 326 402 L316 424 Q256 452 196 424 Z"/>
+</svg>

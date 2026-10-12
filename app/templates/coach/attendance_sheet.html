@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">تسجيل الحضور</h1>
+    <p class="page-subtitle">
+      {{ session.group.name if session.group else 'حصة عامة' }} —
+      {{ session.session_date|date }}
+      <span dir="ltr">{{ session.time_label }}</span>
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-ghost btn-sm" href="/coach">← اللوحة</a>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-3">
+  {{ ui.stat_card('المتوقَّع', session.expected_count, '👥', 'primary') }}
+  {{ ui.stat_card('الحاضرون', session.present_count, '✅', 'success') }}
+  {{ ui.stat_card('الغائبون', session.absent_count, '❌', 'danger') }}
+  {{ ui.stat_card('سُجِّل', recorded_count, '📋', 'info',
+                  (session.expected_count - recorded_count)|string ~ ' متبقٍ') }}
+</div>
+
+{# ================= ماسح QR ================= #}
+<div class="card mb-3">
+  <div class="card-header">
+    <div class="card-title">📷 مسح بطاقة الرياضي</div>
+    <div class="card-subtitle">وجّه كاميرا الجهاز نحو رمز QR على البطاقة</div>
+  </div>
+  <div class="card-body text-center">
+    <button class="btn btn-primary btn-lg" type="button"
+            onclick="MashiaApp.Attendance.scan({sessionId: {{ session.id }}})">
+      تشغيل الماسح
+    </button>
+    <div class="form-hint mt-2">
+      يعمل على المتصفحات الداعمة لـ BarcodeDetector (Chrome / Android).
+      إن لم يكن متاحاً، استخدم الإدخال اليدوي بالأسفل.
+    </div>
+  </div>
+</div>
+
+{# ================= الإدخال اليدوي ================= #}
+<div class="card mb-3">
+  <div class="card-header"><div class="card-title">إدخال يدوي</div></div>
+  <div class="card-body">
+    <form class="d-flex gap-2"
+          onsubmit="MashiaApp.Attendance.manualSubmit(event, {{ session.id }})">
+      <input class="form-control" id="quick-card" placeholder="ABC-1234"
+             dir="ltr" autocomplete="off" required>
+      <button class="btn btn-primary" type="submit">تسجيل</button>
+    </form>
+  </div>
+</div>
+
+{# ================= القائمة ================= #}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">قائمة الحضور</div>
+  </div>
+  <div class="card-body card-body-flush">
+    {% if roster %}
+      <div class="table-wrapper">
+        <table class="table" id="roster-table">
+          <thead>
+            <tr>
+              <th>الرياضي</th>
+              <th dir="ltr">الكود</th>
+              <th class="text-center-cell">الحالة</th>
+              <th class="text-end-cell">تحديد سريع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in roster %}
+            <tr>
+              <td>
+                <div class="d-flex align-center gap-2">
+                  {{ ui.avatar(row.athlete, 'avatar-sm') }}
+                  <span class="fw-bold">{{ row.athlete.full_name }}</span>
+                </div>
+              </td>
+              <td dir="ltr" class="text-end-cell text-muted">{{ row.athlete.card_code }}</td>
+              <td class="text-center-cell">
+                {% if row.status %}{{ ui.badge(row.status) }}
+                {% else %}<span class="badge badge-neutral">لم يُسجَّل</span>{% endif %}
+              </td>
+              <td class="text-end-cell">
+                <div class="table-actions d-flex gap-1 justify-end">
+                  {% for value, label, cls in [
+                        ('present','حاضر','success'), ('absent','غائب','danger'),
+                        ('excused','بعذر','info')] %}
+                    <form method="post"
+                          action="/coach/sessions/{{ session.id }}/record" class="m-0">
+                      <input type="hidden" name="athlete_id" value="{{ row.athlete.id }}">
+                      <input type="hidden" name="status" value="{{ value }}">
+                      <button class="btn btn-sm btn-outline btn-{{ cls }}"
+                              type="submit">{{ label }}</button>
+                    </form>
+                  {% endfor %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {{ ui.empty_state('👥', 'لا يوجد رياضيون في هذه الحصة',
+                        'الحصة غير مرتبطة بفوج يحتوي على رياضيين.') }}
+    {% endif %}
+  </div>
+
+  {% if roster %}
+  <div class="card-footer d-flex flex-wrap gap-2 justify-end">
+    <form method="post" action="/coach/sessions/{{ session.id }}/finish" class="m-0"
+          data-confirm data-confirm-title="إنهاء الحصة"
+          data-confirm-text="سيُسجَّل المتبقون كغياب، وستصل إشعارات لأوليائهم، وتُغلق الحصة.">
+      <button class="btn btn-primary" type="submit">
+        ✅ إنهاء الحصة وإشعار الأولياء
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

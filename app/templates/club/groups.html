@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الأفواج</h1>
+    <p class="page-subtitle">{{ groups|length }} فوج نشط</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-primary btn-sm" href="/club/groups/new">+ فوج جديد</a>
+  </div>
+</div>
+
+{% if groups %}
+  <div class="grid grid-3">
+    {% for g in groups %}
+    {% set occ = occupancy.get(g.id) %}
+    <div class="card card-hover">
+      <div class="card-header" {% if g.color %}
+          style="border-inline-start: 4px solid {{ g.color }};">{% endif %}>
+        <div>
+          <div class="card-title">{{ g.name }}</div>
+          <div class="card-subtitle">{{ g.level|status_label }}</div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        {% if g.coach %}
+          <div class="text-muted text-sm mb-2">👔 {{ g.coach.name }}</div>
+        {% endif %}
+
+        <table class="table table-compact table-borderless mb-3">
+          <tbody>
+            <tr><td class="text-muted">الأيام</td>
+                <td class="text-end-cell">{{ g.schedule_days|default('—') }}</td></tr>
+            <tr><td class="text-muted">التوقيت</td>
+                <td class="text-end-cell" dir="ltr">{{ g.time_label|default('—') }}</td></tr>
+            <tr><td class="text-muted">المكان</td>
+                <td class="text-end-cell">{{ g.location|default('—') }}</td></tr>
+            {% if g.monthly_fee %}
+            <tr><td class="text-muted">الاشتراك</td>
+                <td class="text-end-cell">{{ g.monthly_fee|money }}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+
+        {% if occ %}
+          <div class="d-flex justify-between text-sm mb-1">
+            <span class="text-muted">الإشغال</span>
+            <span class="fw-bold">{{ occ.current }}/{{ occ.capacity }}
+              ({{ occ.fill_rate|percent(0) }})</span>
+          </div>
+          {{ ui.progress_bar(occ.fill_rate,
+             'danger' if occ.fill_rate >= 95 else ('warning' if occ.fill_rate >= 80 else 'success')) }}
+        {% endif %}
+      </div>
+
+      <div class="card-footer d-flex gap-2">
+        <a class="btn btn-primary btn-sm" href="/club/groups/{{ g.id }}">التفاصيل</a>
+        {% if g.capacity and g.current_count < g.capacity %}
+          <span class="badge badge-info">{{ g.available_slots }} مقعد شاغر</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card">
+    <div class="card-body">
+      {{ ui.empty_state('👥', 'لا توجد أفواج بعد',
+                        'أنشئ أول فوج لتتمكن من توزيع الرياضيين وبرمجة الحصص.',
+                        '/club/groups/new', 'إنشاء فوج') }}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

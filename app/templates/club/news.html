@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui with context %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">الأخبار والإعلانات</h1>
+    <p class="page-subtitle">{{ news|length }} منشور</p>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 340px; gap: 1.25rem;">
+
+  {# ================= القائمة ================= #}
+  <div class="card">
+    <div class="card-body card-body-flush">
+      {% if news %}
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>العنوان</th><th>النوع</th><th>الحالة</th>
+                <th>النشر</th><th class="text-center-cell">المشاهدات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for n in news %}
+              <tr>
+                <td>
+                  <a href="/news/{{ n.id }}" class="fw-bold text-decoration-none">{{ n.title }}</a>
+                  {% if n.is_pinned %}
+                    <span class="badge badge-warning">مثبّت</span>
+                  {% endif %}
+                </td>
+                <td>{{ ui.badge(n.kind) }}</td>
+                <td>
+                  {% if n.is_published %}{{ ui.badge('active') }}
+                  {% else %}<span class="badge badge-neutral">مسودة</span>{% endif %}
+                </td>
+                <td class="text-sm text-muted">{{ n.published_at|relative if n.published_at else '—' }}</td>
+                <td class="text-center-cell">{{ n.views_count|number }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {{ ui.empty_state('📣', 'لم تنشر أي خبر بعد',
+                          'انشر أول إعلان ليظهر في البوابة العامة.',
+                          '', '') }}
+      {% endif %}
+    </div>
+  </div>
+
+  {# ================= نموذج النشر ================= #}
+  <aside>
+    <div class="card">
+      <div class="card-header"><div class="card-title">نشر خبر جديد</div></div>
+      <div class="card-body">
+        <form method="post" action="/club/news" novalidate>
+          {{ ui.field('title', 'العنوان', '', required=True,
+                      attrs='maxlength="250"') }}
+
+          <div class="form-group">
+            <label class="form-label" for="kind">النوع</label>
+            <select class="form-select" id="kind" name="kind">
+              {% for value, label in [('news','خبر'),('announcement','إعلان'),
+                ('result','نتيجة'),('event','فعالية'),('tournament','بطولة')] %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {{ ui.textarea('content', 'المحتوى', '', rows=6, required=True,
+                         placeholder='اكتب تفاصيل الخبر أو الإعلان…') }}
+
+          {{ ui.field('location', 'المكان', '', placeholder='للالفعاليات فقط') }}
+          {{ ui.field('event_date', 'تاريخ الفعالية', '', type='date') }}
+
+          <div class="form-check mb-3">
+            <input type="checkbox" id="is_pinned" name="is_pinned">
+            <label for="is_pinned">تثبيت في أعلى القائمة</label>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">نشر</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
