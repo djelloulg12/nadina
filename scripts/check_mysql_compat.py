@@ -19,6 +19,7 @@ MariaDB، والسؤال الحاسم: **هل تُصرَّف كل استعلام
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -31,6 +32,38 @@ from sqlalchemy.schema import CreateIndex, CreateTable  # noqa: E402
 
 from app.core.db import Base  # noqa: E402
 import app.models  # noqa: E402,F401
+
+
+
+
+#: InnoDB prefix limit, bytes (legacy row formats)
+STRICT_LIMIT = 767
+#: 4 bytes per character under utf8mb4
+BYTES_PER_CHAR = 4
+
+_PREFIX_RE = re.compile(r"\(\s*'([a-z_0-9]+)'\s*(?:\(\s*(\d+)\s*\))?\s*\)")
+
+
+def _effective_bytes(ddl: str) -> int:
+    """
+    حساب حجم الفهرس بالبايت كما سيراه MariaDB فعلاً.
+
+    يقرأ بادئة الفهرس (``col(191)``) إن وُجدت، وإلا استخدم الطول المُعلَن
+    للعمود. هذا ما يجعل الفحص يقيسreality بدل announcement.
+    """
+    match = re.search(r"\(\s*'([a-z_0-9]+)'\s*(?:\(\s*(\d+)\s*\))?", ddl)
+    if not match:
+        return 0
+
+    prefix = match.group(2)
+    if prefix:
+        return int(prefix) * BYTES_PER_CHAR
+
+    # بلا بادئة: نبحث عن الطول المعلن في نص DDL
+    type_match = re.search(r"VARCHAR\((\d+)\)", ddl)
+    if type_match:
+        return int(type_match.group(1)) * BYTES_PER_CHAR
+    return 0
 
 
 def main() -> int:
@@ -62,16 +95,24 @@ def main() -> int:
             except Exception as exc:
                 failures.append(f"INDEX {table.name}.{index.name}: {exc}")
 
-        # كشف أعمدة نصية طويلة في فهرس (سبب شائع لفشل النشر)
+        # كشف الفهارس الفريدة التي تتجاوز حد InnoDB.
+        #
+        # المهم: نقيس الطول من DDL المُترجَم لا من طول العمود المُعلَن.
+        # فهرس ``uq_clubs_slug`` يُترجَم إلى ``slug(191)`` = 764 بايت،
+        # وهو آمن، بينما العمود نفسه VARCHAR(220) = 880 بايت.
+        # القياس من العمود Gives false positive.
         for index in table.indexes:
-            for col in index.columns:
-                coltype = col.type
-                length = getattr(coltype, "length", None)
-                if length and length > 191 and index.unique:
-                    failures.append(
-                        f"UNIQUE-INDEX-TOO-LONG {table.name}.{index.name}"
-                        f"({col.name} VARCHAR({length}))"
-                    )
+            if not index.unique:
+                continue
+
+            ddl = str(CreateIndex(index).compile(dialect=mysql_dialect.dialect()))
+            effective = _effective_bytes(ddl)
+
+            if effective > STRICT_LIMIT:
+                failures.append(
+                    f"UNIQUE-INDEX-TOO-LONG {table.name}.{index.name}"
+                    f" -> {effective} bytes > {STRICT_LIMIT}"
+                )
 
         print(f"   [OK  ] {table.name:<26} {len(ddl.splitlines()):>3} سطر")
 
