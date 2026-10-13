@@ -22,6 +22,8 @@ Wispbyte يشغّل حاوية Python عبر Pterodactyl:
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import pathlib
 import shutil
 import subprocess
@@ -47,92 +49,21 @@ EXCLUDE_FILES = {
 EXCLUDE_SUFFIX = {".pyc", ".pyo", ".log", ".db", ".sqlite", ".sqlite3"}
 
 
-ENTRYPOINT = '''"""
-نقطة الدخول على Wispbyte
-========================
-
-Wispbyte ينفّذ هذا الملف عبر \"Use on startup\". المنفذ يأتي من
-**Console -> Server info -> Address** (الرقم بعد النقطتين).
-
-المنصة تطبيق FastAPI يعمل مع uvicorn على منفذ واحد. نستخدم عاملاً واحداً
-لأن ذاكرة الخادم 512 ميغابايت، وعدة عمّال يستهلكون ذاكرة مضاعفة بلا
-فائدة على خطة بهذا الحجم.
-"""
-
-from __future__ import annotations
-
-import os
-import sys
-
-# جذر الخادم هو المجلد الذي يحتوي هذا الملف
-ROOT = os.path.dirname(os.path.abspath(__file__))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+#: The uploaded entry point lives in its own file, so it can be
+#: read, linted and tested as real Python instead of as a string.
+TEMPLATE_DIR = pathlib.Path(__file__).resolve().parent / "templates"
 
 
-def main() -> int:
-    # ---------------------------------------------------------------
-    # 1) تحميل الإعدادات قبل استيراد التطبيق
-    #    (pydantic-settings يقرأها عند الاستيراد)
-    # ---------------------------------------------------------------
-    env_file = os.path.join(ROOT, "wispbyte.env")
-    if os.path.exists(env_file):
-        _load_env(env_file)
-
-    port = int(os.getenv("PORT", "1234"))
-
-    # ---------------------------------------------------------------
-    # 2) الترحيلات: ينشئ الجداول قبل أول طلب
-    # ---------------------------------------------------------------
-    if os.getenv("RUN_MIGRATIONS", "1") == "1":
-        print("[wispbyte] applying database migrations...", flush=True)
-        try:
-            from app.core import schema
-            import asyncio
-
-            asyncio.run(schema.sync_schema(reset=False, quiet=True))
-            print("[wispbyte] migrations OK", flush=True)
-        except Exception as exc:
-            # لا نمنع الإقلاع: التطبيق يعمل حتى لو فشل تطبيق الترحيلات
-            print(f"[wispbyte] migration warning: {exc}", flush=True)
-
-    # ---------------------------------------------------------------
-    # 3) التشغيل
-    # ---------------------------------------------------------------
-    import uvicorn
-
-    print(f"[wispbyte] starting uvicorn on 0.0.0.0:{port}", flush=True)
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=port,
-        log_level="info",
-        proxy_headers=True,
-        forwarded_allow_ips="*",
-        timeout_keep_alive=60,
+def _load_entrypoint(port: int) -> str:
+    """Read the entry point and bake the assigned port into it."""
+    source = (TEMPLATE_DIR / "wispbyte_main.py").read_text(encoding="utf-8")
+    return re.sub(
+        r"^DEFAULT_PORT = \d+$",
+        f"DEFAULT_PORT = {port}",
+        source,
+        count=1,
+        flags=re.MULTILINE,
     )
-    return 0
-
-
-def _load_env(path: str) -> None:
-    """قراءة ملف key=value إلى os.environ دون الكتابة فوق الموجود."""
-    try:
-        with open(path, encoding="utf-8") as fh:
-            for raw in fh:
-                line = raw.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                os.environ.setdefault(key, value)
-    except OSError as exc:
-        print(f"[wispbyte] could not read env file: {exc}", flush=True)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
-'''
 
 
 ENV_TEMPLATE = '''# =====================================================================
@@ -175,6 +106,45 @@ ALLOW_PUBLIC_CLUB_REGISTRATION=true
 '''
 
 
+def _prepare_database(out_dir: pathlib.Path, env_text: str) -> bool:
+    """
+    تشغيل مخطط البيانات وبذره البيانات الافتراضية.
+
+    يعمل البناء من جاهز: لو يُطلب ملف البيانات يقلي حتى يحتاج الخارم من القائمة.
+
+    إذا فشل: يارصف مذكرة (لا تطبيق) ويخطر الذكرة
+    من تطبيقات المرجية — الخارم يحذرساتها عندأول إقلاع.
+    """
+    data_dir = out_dir / "data"
+    data_dir.mkdir(exist_ok=True)
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "scripts.seed", "--reset"],
+        cwd=str(out_dir),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env={
+            **os.environ,
+            "APP_ENV": "production",
+            "DEBUG": "false",
+            "PYTHONIOENCODING": "utf-8",
+        },
+    )
+
+    db = data_dir / "mashia.db"
+    if proc.returncode == 0 and db.exists():
+        print(f"  database : {db.stat().st_size / 1024:.0f} KB (seeded)")
+        return True
+
+    print("  database : seed failed -- shipping an empty schema")
+    tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-3:]
+    for line in tail:
+        print(f"             {line}")
+    return False
+
+
 def build(
     port: int,
     cookie_secure: str,
@@ -210,7 +180,9 @@ def build(
             shutil.copy2(item, target)
 
     # نقطة الدخول
-    (out_dir / "main.py").write_text(ENTRYPOINT, encoding="utf-8")
+    (out_dir / "main.py").write_text(
+        _load_entrypoint(port), encoding="utf-8"
+    )
 
     # ملف الإعدادات
     secret = subprocess.run(
@@ -227,8 +199,13 @@ def build(
     (out_dir / "wispbyte.env").write_text(env_text, encoding="utf-8")
     (out_dir / ".env").write_text(env_text, encoding="utf-8")
 
-    # مجلد البيانات
-    (out_dir / "data").mkdir(exist_ok=True)
+    # المشر والبيانات:
+    # نشغري المخطط ونبذره داخل الأرشيف.
+    #
+    # لولها مهم: لوحدة المصير تعرض فقط لمجلد
+    # بيانات إلى الموقف -- والملف المُحرم مليكيزي
+    # نهاً. البرنامج يحتاج مخرجاً بالشيرة ومتطابق.
+    _prepare_database(out_dir, env_text)
 
     # الأرشيف
     archive = pathlib.Path(tempfile.gettempdir()) / "mashia_wispbyte" / "wispbyte_deploy.zip"
