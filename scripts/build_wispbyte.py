@@ -145,23 +145,27 @@ APP_NAME=المنصة الشاملة
 APP_ENV=production
 DEBUG=false
 
-# --- الأمان ---
-# استبدل هذا المفتاح بمفتاح عشوائي حقيقي قبل النشر:
-#   python -c "import secrets; print(secrets.token_urlsafe(48))"
+# --- security ---
+# The Python egg serves plain HTTP on the node IP:PORT. There is no
+# TLS in front of it, so the session cookie cannot be marked Secure --
+# a Secure cookie is never sent over plain HTTP and login would
+# silently fail. ALLOW_INSECURE_COOKIES is the explicit
+# acknowledgment that turns that guard off. Enable it ONLY because
+# this endpoint is HTTP; a real public hostname must use HTTPS with
+# both settings back to true.
 SECRET_KEY={secret_key}
-
-# الخادم يقدّم HTTPS عبر نطاق Wispbyte، لذا الكوكي آمن.
-# إن كان الوصول عبر http:// فقط فاجعلها false، وإلا لن يعمل الدخول.
 COOKIE_SECURE={cookie_secure}
+ALLOW_INSECURE_COOKIES={allow_insecure}
 COOKIE_SAMESITE=lax
 
-# --- قاعدة البيانات ---
-# SQLite: لا تستهلك ذاكرة إضافية ولا تحتاج خادماً ثانياً،
-# وهو ما يتطلبه_plan المجانية (خانة واحدة).
+# --- database ---
+# SQLite: no extra RAM and no second server, which the free Wispbyte
+# plan requires (it grants a single slot, which the app itself needs).
 DB_DRIVER=sqlite
 SQLITE_PATH=data/mashia.db
 
-# لو توفّرت خانة ثانية لخادم MariaDB، استبدل ما سبق بالتالي:
+# If a second slot ever becomes available for MariaDB, replace the
+# three lines above with:
 #   DB_DRIVER=mysql
 #   DATABASE_URL=mysql+aiomysql://USER:PASSWORD@HOST:3306/DBNAME?charset=utf8mb4
 
@@ -171,7 +175,12 @@ ALLOW_PUBLIC_CLUB_REGISTRATION=true
 '''
 
 
-def build(port: int, cookie_secure: str, out_dir: pathlib.Path) -> pathlib.Path:
+def build(
+    port: int,
+    cookie_secure: str,
+    allow_insecure: str,
+    out_dir: pathlib.Path,
+) -> pathlib.Path:
     """بناء مجلد النشر وأرشيفه."""
     # المجلد الهدف يقع داخل جذر المشروع، فنستثنيه صراحةً --
     # بدون ذلك ينسخ walk محتواه إلى نفسه ويClasses بلا نهاية.
@@ -209,7 +218,11 @@ def build(port: int, cookie_secure: str, out_dir: pathlib.Path) -> pathlib.Path:
          "import secrets; print(secrets.token_urlsafe(48))"],
         capture_output=True, text=True,
     ).stdout.strip()
-    env_text = ENV_TEMPLATE.format(secret_key=secret, cookie_secure=cookie_secure)
+    env_text = ENV_TEMPLATE.format(
+        secret_key=secret,
+        cookie_secure=cookie_secure,
+        allow_insecure=allow_insecure,
+    )
 
     (out_dir / "wispbyte.env").write_text(env_text, encoding="utf-8")
     (out_dir / ".env").write_text(env_text, encoding="utf-8")
@@ -251,7 +264,8 @@ def main() -> int:
         out_dir = ROOT / out_dir
     out_dir.parent.mkdir(parents=True, exist_ok=True)
 
-    archive = build(int(args.port), args.cookie_secure, out_dir)
+    allow_insecure = "true" if args.cookie_secure == "false" else "false"
+    archive = build(int(args.port), args.cookie_secure, allow_insecure, out_dir)
 
     files = [p for p in out_dir.rglob("*") if p.is_file()]
     total = sum(p.stat().st_size for p in files)

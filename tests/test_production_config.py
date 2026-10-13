@@ -60,6 +60,30 @@ URL_CASES = [
         "postgresql+asyncpg://user:p%40ss%3Aword@host/db",
         "postgresql+psycopg2://user:p%40ss%3Aword@host/db",
     ),
+    # Wispbyte-style shared hosting: mysql:// with no driver
+    (
+        "mysql://user:pass@host:3306/db",
+        "mysql+aiomysql://user:pass@host:3306/db",
+        "mysql+pymysql://user:pass@host:3306/db",
+    ),
+    # mariadb:// is the name MariaDB's own panel uses
+    (
+        "mariadb://user:pass@host:3306/db",
+        "mysql+aiomysql://user:pass@host:3306/db",
+        "mysql+pymysql://user:pass@host:3306/db",
+    ),
+    # an explicit driver is the caller's decision, so we stay out of it
+    (
+        "mysql+pymysql://user:pass@host/db",
+        "mysql+pymysql://user:pass@host/db",
+        "mysql+pymysql://user:pass@host/db",
+    ),
+    # reserved chars in the MySQL password stay untouched
+    (
+        "mysql://user:p%40ss%3Aword@host/db",
+        "mysql+aiomysql://user:p%40ss%3Aword@host/db",
+        "mysql+pymysql://user:p%40ss%3Aword@host/db",
+    ),
 ]
 
 
@@ -146,3 +170,34 @@ def test_postgres_url_creates_no_dirs(tmp_path):
     Settings(DATABASE_URL=f"postgresql://u:p@h/{target.name}").database_url
 
     assert not target.exists()
+
+
+def test_production_allows_insecure_cookie_when_acknowledged():
+    """
+    HTTP-only hosts cannot send a ``Secure`` cookie.
+
+    Without an escape hatch the app refuses to boot there at all; with
+    one, the operator has to type the acknowledgment explicitly. That
+    keeps the default secure and makes the insecure choice visible.
+    """
+    settings = Settings(
+        APP_ENV="production",
+        DEBUG=False,
+        COOKIE_SECURE=False,
+        ALLOW_INSECURE_COOKIES=True,
+        SECRET_KEY="x" * 50,
+    )
+    assert settings.COOKIE_SECURE is False
+
+
+def test_insecure_escape_hatch_defaults_to_off():
+    """A bare production setup still refuses -- the hatch is not a default."""
+    assert Settings().ALLOW_INSECURE_COOKIES is False
+
+    with pytest.raises(ValueError):
+        Settings(
+            APP_ENV="production",
+            DEBUG=False,
+            COOKIE_SECURE=False,
+            SECRET_KEY="x" * 50,
+        )

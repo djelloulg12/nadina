@@ -126,6 +126,15 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False                               # True في الإنتاج
     COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
     COOKIE_DOMAIN: str | None = None
+    ALLOW_INSECURE_COOKIES: bool = False
+
+    #: إقرار صريح لتشغيل التطبيق خلف HTTP بلا TLS.
+    #:
+    #: بعض المضيفين (لوحات خوادم الألعاب، النشر داخل الشبكة المحلية) لا
+    #: يوفّرون HTTPS إطلاقاً. الحارس في :meth:`_guard_production_secrets`
+    #: يرفض الإقلاع عندها، لأن كوكي جلسة غير آمن بصمت أخطر من فشل إقلاع
+    #: صريح. تفعيل هذا الخيار هو إذن واعٍ وقابل للقراءة في سجل الإقلاع،
+    #: لا قيمة افتراضية. لا تُفعّله خلف اسم نطاق عام.
 
     #: المصادر المسموح لها بالوصول إلى الـ API (مفصولة بفواصل).
     #: في التطوير يُتجاهل ويُسمح للجميع.
@@ -246,9 +255,11 @@ class Settings(BaseSettings):
             if self.DEBUG:
                 # لا نرفع استثناءً قاتلاً، لكن نسجّل تحذيراً عبر المحدد أدناه.
                 object.__setattr__(self, "DEBUG", False)
-            if self.COOKIE_SECURE is False:
+            if self.COOKIE_SECURE is False and not self.ALLOW_INSECURE_COOKIES:
                 raise ValueError(
-                    "COOKIE_SECURE يجب أن يكون True في بيئة الإنتاج"
+                    "COOKIE_SECURE يجب أن يكون True في بيئة الإنتاج "
+                    "(أو عيّن ALLOW_INSECURE_COOKIES=true إن كان المضيف "
+                    "لا يوفّر HTTPS)"
                 )
         return self
 
