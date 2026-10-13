@@ -17,7 +17,7 @@ asyncpg==0.31.0                # سائق PostgreSQL غير متزامن (تشغ
 psycopg2-binary==2.9.10         # سائق PostgreSQL المتزامن (Alembic فقط)
 aiomysql==0.3.2                 # سائق MariaDB/MySQL غير متزامن
 PyMySQL==1.1.1                  # سائق MariaDB/MySQL متزامن (Alembic)
-greenlet==2.0.3                # مطلوب لـ SQLAlchemy async
+greenlet>=3.0.0,<4.0.0                # مطلوب لـ SQLAlchemy async
 
 # --- Validation & Settings -----------------------------------------
 pydantic==2.13.5
