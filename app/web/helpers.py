@@ -180,6 +180,7 @@ async def page_context(
         "current_club": None,
         "unread_notifications": 0,
         "APP_NAME": settings.APP_NAME,
+        "APP_DESIGNER": settings.APP_DESIGNER,
         "APP_VERSION": settings.APP_VERSION,
         "active_nav": "",
     }

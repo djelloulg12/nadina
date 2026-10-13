@@ -311,6 +311,7 @@ templates.env.filters.update(
 templates.env.globals.update(
     APP_NAME=settings.APP_NAME,
     APP_TAGLINE=settings.APP_TAGLINE,
+    APP_DESIGNER=settings.APP_DESIGNER,
     APP_VERSION=settings.APP_VERSION,
     today=dt.date.today,
     now=dt.datetime.now,

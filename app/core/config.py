@@ -107,6 +107,8 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     APP_NAME: str = "المنصة الشاملة"
     APP_TAGLINE: str = "الإدارة الشاملة للنوادي الرياضية"
+    #: مصمم المنصة — يظهر في تذييل الصفحات العامة وفي بيانات التطبيق.
+    APP_DESIGNER: str = "جلول قندوز"
     APP_VERSION: str = "1.0.0"
     APP_ENV: Literal["development", "staging", "production", "test"] = "development"
     APP_URL: str = "http://localhost:8000"
