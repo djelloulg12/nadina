@@ -121,14 +121,18 @@ async def main() -> int:
 
     # نسلّم التنفيذ لـ uvicorn داخل نفس العملية: ``server.run`` يستقبل
     # الإشارات ويخرج برمز حالة صحيح، بخلاف استدعاء فرعي منفصل.
+    # عن ``proxy_headers``: لا نمرّره هنا إطلاقاً. التطبيق نفسه يركّب
+    # ProxyHeadersMiddleware مع قائمة ``TRUSTED_PROXIES`` محدّدة (في
+    # main.py). تمرير ``forwarded_allow_ips="*"`` من uvicorn كان يُلغي
+    # تلك القائمة بصمت — لأن وسيط uvicorn يعمل خارج التطبيق فيسبقها،
+    # ويجعل ``X-Forwarded-For`` قابلة للتزوير من أي عميل.
+    # قائمة واحدة موثوقة خير من قائمتين إحداهما مفتوحة.
     config = uvicorn.Config(
         "app.main:app",
         host=host,
         port=port,
         log_level="info",
         workers=workers if workers > 1 else None,
-        proxy_headers=True,
-        forwarded_allow_ips="*",
         timeout_keep_alive=65,   # أقل من مهلة المنصّة (100 ثانية)
     )
     server = uvicorn.Server(config)
