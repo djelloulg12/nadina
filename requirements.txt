@@ -13,7 +13,7 @@ jinja2==3.1.6                   # محرّك القوالب (Server-side renderi
 SQLAlchemy==2.0.54             # ORM + Core
 alembic==1.16.5                # ترحيل قاعدة البيانات
 aiosqlite==0.22.1               # سائق SQLite غير متزامن (تطوير)
-asyncpg==0.31.0                # سائق PostgreSQL غير متزامن (تشغيل التطبيق)
+asyncpg==0.30.0                # سائق PostgreSQL غير متزامن (تشغيل التطبيق)
 psycopg2-binary==2.9.10         # سائق PostgreSQL المتزامن (Alembic فقط)
 aiomysql==0.3.2                 # سائق MariaDB/MySQL غير متزامن
 PyMySQL==1.1.1                  # سائق MariaDB/MySQL متزامن (Alembic)
@@ -22,7 +22,7 @@ greenlet>=3.0.0,<4.0.0                # مطلوب لـ SQLAlchemy async
 # --- Validation & Settings -----------------------------------------
 pydantic==2.13.5
 pydantic-settings==2.15.0
-email-validator==3.0           # التحقق من صيغة البريد الإلكتروني
+email-validator==2.3.0           # التحقق من صيغة البريد الإلكتروني
 
 # --- Security -------------------------------------------------------
 bcrypt==4.2.1                  # تشفير كلمات المرور
@@ -32,7 +32,7 @@ itsdangerous==2.2.0            # توقيع كوكيز الجلسة للواجه
 # --- Import / Export / QR ------------------------------------------
 openpyxl==3.1.5                # استيراد وتصدير Excel
 qrcode==8.2                    # توليد رموز QR للبطاقات
-pillow==12.3.0                 # معالجة صور رموز QR
+pillow==12.2.0                 # معالجة صور رموز QR
 
 # --- Utilities ------------------------------------------------------
 python-multipart==0.0.32
